@@ -9,10 +9,16 @@ variable "ssh_key_ids" {
   type        = list(number)
 }
 
-variable "location" {
-  description = "Hetzner datacenter location (e.g. ash, nbg1, fsn1)"
+variable "cp_location" {
+  description = "Hetzner datacenter location for the K3s control plane"
   type        = string
   default     = "ash"
+}
+
+variable "vps_location" {
+  description = "Hetzner datacenter location for the services VPS"
+  type        = string
+  default     = "hil"
 }
 
 variable "ssh_port" {

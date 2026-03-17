@@ -2,6 +2,38 @@
 
 All notable changes to the Helix Stax infrastructure are documented here.
 
+## [0.2.0] - 2026-03-17
+
+### Phase 1: Foundation — Services VPS
+
+#### Added
+- VPS: helix-stax-vps (cpx31, 8GB, Hillsboro/hil, 5.78.145.30, ID: 124045581)
+- VPS Firewall: helix-vps-firewall (ID: 10712312) — SSH 2222 (admin IP only), HTTP, HTTPS
+- Docker CE 29.3.0 on VPS (upgraded from Debian repo 20.10)
+- docker-compose-plugin v5.1.0 on VPS
+- fail2ban on VPS (systemd backend, sshd jail on port 2222)
+- UFW on VPS: default-deny, allow 2222/80/443
+- /data directories on VPS: postgres, harbor, minio, authentik
+- Terraform split-location variables: cp_location (ash) + vps_location (hil)
+
+#### Changed
+- VPS replaced: cpx11 Ashburn (failed cloud-init) → cpx31 Hillsboro (manual provisioning)
+  - Old: ID 124041456, cpx11, ash, 5.161.225.106
+  - New: ID 124045581, cpx31, hil, 5.78.145.30
+- SSH port on VPS: 22 → 2222 (dual-port approach: verified 2222 first, then removed 22)
+- Local SSH config for helix-vps: Port 22 → Port 2222
+- Terraform variables.tf: single `location` split into `cp_location` + `vps_location`
+- VPS firewall SSH rule: 0.0.0.0/0 → admin IP only (173.40.165.150/32)
+- VPS server label added: role=services
+
+#### Fixed
+- Terraform state stale entry: removed old VPS (124041456), imported real VPS (124045581)
+- Terraform plan: zero drift after import + apply
+
+### Infrastructure Cost
+- VPS added: cpx31 Hillsboro ~$18/mo
+- Current spend: ~$64/mo (CP + worker + VPS)
+
 ## [0.1.0] - 2026-03-17
 
 ### Phase 0: Server Hardening

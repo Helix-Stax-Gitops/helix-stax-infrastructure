@@ -1,0 +1,26 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - docker-compose
+  - fail2ban
+  - ufw
+  - python3-systemd
+  - curl
+
+runcmd:
+  - mkdir -p /data/postgres /data/harbor /data/minio /data/authentik /data/netbird /data/openbao /data/vaultwarden
+  - chmod 700 /data/*
+  - systemctl enable --now docker
+  - sed -i 's/^#Port 22/Port 22/' /etc/ssh/sshd_config
+  - echo 'Port 2222' >> /etc/ssh/sshd_config
+  - sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - systemctl restart sshd
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 2222/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - echo "y" | ufw enable
+  - systemctl enable --now fail2ban

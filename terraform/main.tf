@@ -83,7 +83,7 @@ module "cp_server" {
   name        = "helix-stax-cp"
   server_type = var.cp_server_type
   image       = var.cp_image
-  location    = var.location
+  location    = var.cp_location
   ssh_key_ids = var.ssh_key_ids
   firewall_ids = [module.cp_firewall.firewall_id]
 
@@ -131,7 +131,7 @@ module "vps_server" {
   name        = "helix-stax-vps"
   server_type = var.vps_server_type
   image       = var.vps_image
-  location    = var.location
+  location    = var.vps_location
   ssh_key_ids = var.ssh_key_ids
   firewall_ids = [module.vps_firewall.firewall_id]
 
