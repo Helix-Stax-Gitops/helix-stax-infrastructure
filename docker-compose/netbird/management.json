@@ -1,0 +1,101 @@
+{
+    "Stuns": [
+        {
+            "Proto": "udp",
+            "URI": "stun:5.78.145.30:3478",
+            "Username": "",
+            "Password": null
+        }
+    ],
+    "TURNConfig": {
+        "Turns": [
+            {
+                "Proto": "udp",
+                "URI": "turn:5.78.145.30:3478",
+                "Username": "netbird",
+                "Password": "SEE /opt/helix-stax/.env NETBIRD_TURN_PASSWORD"
+            }
+        ],
+        "CredentialsTTL": "12h",
+        "Secret": "SEE /opt/helix-stax/.env NETBIRD_TURN_SECRET",
+        "TimeBasedCredentials": false
+    },
+    "Relay": {
+        "Addresses": ["rel://5.78.145.30:33080"],
+        "CredentialsTTL": "24h",
+        "Secret": "SEE /opt/helix-stax/.env NETBIRD_RELAY_SECRET"
+    },
+    "Signal": {
+        "Proto": "http",
+        "URI": "5.78.145.30:10000",
+        "Username": "",
+        "Password": null
+    },
+    "ReverseProxy": {
+        "TrustedHTTPProxies": [],
+        "TrustedHTTPProxiesCount": 0,
+        "TrustedPeers": ["0.0.0.0/0"]
+    },
+    "DisableDefaultPolicy": false,
+    "Datadir": "",
+    "DataStoreEncryptionKey": "SEE /opt/helix-stax/.env NETBIRD_DATASTORE_ENC_KEY",
+    "StoreConfig": {
+        "Engine": "postgres"
+    },
+    "HttpConfig": {
+        "Address": "0.0.0.0:33073",
+        "AuthIssuer": "",
+        "AuthAudience": "",
+        "AuthKeysLocation": "",
+        "AuthUserIDClaim": "",
+        "CertFile": "",
+        "CertKey": "",
+        "IdpSignKeyRefreshEnabled": false,
+        "OIDCConfigEndpoint": ""
+    },
+    "IdpManagerConfig": {
+        "ManagerType": "none",
+        "ClientConfig": {
+            "Issuer": "",
+            "TokenEndpoint": "",
+            "ClientID": "",
+            "ClientSecret": "",
+            "GrantType": "client_credentials"
+        },
+        "ExtraConfig": {},
+        "Auth0ClientCredentials": null,
+        "AzureClientCredentials": null,
+        "KeycloakClientCredentials": null,
+        "ZitadelClientCredentials": null
+    },
+    "DeviceAuthorizationFlow": {
+        "Provider": "none",
+        "ProviderConfig": {
+            "Audience": "",
+            "AuthorizationEndpoint": "",
+            "Domain": "",
+            "ClientID": "",
+            "ClientSecret": "",
+            "TokenEndpoint": "",
+            "DeviceAuthEndpoint": "",
+            "Scope": "openid",
+            "UseIDToken": false,
+            "RedirectURLs": null
+        }
+    },
+    "PKCEAuthorizationFlow": {
+        "ProviderConfig": {
+            "Audience": "",
+            "ClientID": "",
+            "ClientSecret": "",
+            "Domain": "",
+            "AuthorizationEndpoint": "",
+            "TokenEndpoint": "",
+            "Scope": "openid profile email offline_access api",
+            "RedirectURLs": [],
+            "UseIDToken": false,
+            "DisablePromptLogin": false,
+            "LoginFlag": ""
+        }
+    }
+}

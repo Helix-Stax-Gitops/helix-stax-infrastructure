@@ -1,0 +1,163 @@
+# Helix Stax — Netbird Self-Hosted VPN
+# Version: v0.66.4
+# Network: helix-net (shared with postgres, redis, authentik, harbor, openbao)
+# Data: /data/netbird/
+#
+# Ports exposed:
+#   10000/tcp  — Signal server (must reach peers)
+#   33073/tcp  — Management API (internal, behind proxy later)
+#   33080/tcp  — Dashboard HTTP (internal)
+#   3478/udp   — Coturn STUN/TURN
+#   49152-65535/udp — Coturn relay range
+#
+# Identity Provider: none (single-account mode, no OIDC for now)
+# Auth to management API is via setup keys only in this phase.
+#
+# To add Authentik OIDC later:
+#   1. Create OAuth2 provider in Authentik
+#   2. Update management.json HttpConfig + IdpManagerConfig
+#   3. Restart management container
+
+x-default: &default
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "100m"
+      max-file: "3"
+
+networks:
+  helix-net:
+    external: true
+
+volumes:
+  netbird-mgmt:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/netbird/management
+  netbird-signal:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/netbird/signal
+
+services:
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────
+  netbird-dashboard:
+    <<: *default
+    image: netbirdio/dashboard:latest
+    container_name: netbird-dashboard
+    networks:
+      - helix-net
+    ports:
+      - "33080:80"
+    environment:
+      # Management API endpoint (what the browser talks to)
+      - NETBIRD_MGMT_API_ENDPOINT=http://5.78.145.30:33073
+      - NETBIRD_MGMT_GRPC_API_ENDPOINT=http://5.78.145.30:33073
+      # Auth — disabled for now (setup key flow)
+      - AUTH_AUDIENCE=
+      - AUTH_CLIENT_ID=
+      - AUTH_CLIENT_SECRET=
+      - AUTH_AUTHORITY=
+      - USE_AUTH0=false
+      - AUTH_SUPPORTED_SCOPES=openid profile email offline_access api
+      - AUTH_REDIRECT_URI=
+      - AUTH_SILENT_REDIRECT_URI=
+      - NETBIRD_TOKEN_SOURCE=accessToken
+      # No TLS on dashboard — Traefik handles it later
+      - NGINX_SSL_PORT=443
+      - LETSENCRYPT_DOMAIN=
+      - LETSENCRYPT_EMAIL=
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Signal Server ─────────────────────────────────────────────────────────
+  netbird-signal:
+    <<: *default
+    image: netbirdio/signal:latest
+    container_name: netbird-signal
+    networks:
+      - helix-net
+    ports:
+      - "10000:80"
+    volumes:
+      - netbird-signal:/var/lib/netbird
+    command:
+      - "--log-file=console"
+      - "--log-level=info"
+      - "--port=80"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/netbird-signal", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Management Server ──────────────────────────────────────────────────────
+  netbird-management:
+    <<: *default
+    image: netbirdio/management:latest
+    container_name: netbird-management
+    networks:
+      - helix-net
+    depends_on:
+      netbird-dashboard:
+        condition: service_healthy
+    ports:
+      - "33073:33073"
+    volumes:
+      - netbird-mgmt:/var/lib/netbird
+      - ./management.json:/etc/netbird/management.json:ro
+    environment:
+      # PostgreSQL backend (shared helix-postgres)
+      - NETBIRD_STORE_ENGINE_POSTGRES_DSN=host=helix-postgres port=5432 user=postgres password=${POSTGRES_PASSWORD} dbname=netbird sslmode=disable
+    command:
+      - "--port=33073"
+      - "--log-file=console"
+      - "--log-level=info"
+      - "--disable-anonymous-metrics=true"
+      - "--single-account-mode-domain=netbird.helixstax.com"
+      - "--dns-domain=netbird.helixstax.com"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:33073/api/accounts"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Relay Server ──────────────────────────────────────────────────────────
+  netbird-relay:
+    <<: *default
+    image: netbirdio/relay:latest
+    container_name: netbird-relay
+    networks:
+      - helix-net
+    ports:
+      - "33080:33080"
+    environment:
+      - NB_LOG_LEVEL=info
+      - NB_LISTEN_ADDRESS=:33080
+      - NB_EXPOSED_ADDRESS=rel://5.78.145.30:33080
+      - NB_AUTH_SECRET=${NETBIRD_RELAY_SECRET}
+
+  # ── Coturn STUN/TURN ──────────────────────────────────────────────────────
+  netbird-coturn:
+    <<: *default
+    image: coturn/coturn:latest
+    container_name: netbird-coturn
+    # Host network required: coturn needs to bind UDP directly for relay
+    network_mode: host
+    volumes:
+      - ./turnserver.conf:/etc/turnserver.conf:ro
+    command:
+      - "-c"
+      - "/etc/turnserver.conf"
