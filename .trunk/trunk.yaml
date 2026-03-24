@@ -1,0 +1,51 @@
+version: 0.1
+cli:
+  version: 1.22.0
+lint:
+  enabled:
+    # Security
+    - gitleaks@8.18.4
+    - trufflehog@3.82.0
+
+    # Shell
+    - shellcheck@0.10.0
+    - shfmt@3.6.0
+
+    # YAML / Config
+    - yamllint@1.35.0
+    - checkov@3.2.0
+
+    # Terraform / OpenTofu
+    - tflint@0.53.0
+
+    # Markdown
+    - markdownlint@0.41.0
+
+    # General
+    - prettier@3.3.0
+    - actionlint@1.7.0
+
+  disabled:
+    # We use ansible-lint separately (not available on Windows)
+    - ansible-lint
+
+  ignore:
+    # Don't lint generated research outputs or node_modules
+    - linters: [ALL]
+      paths:
+        - docs/gemini-skill-prompts/**/*-research-output.md
+        - "**/node_modules/**"
+        - "**/.terraform/**"
+        - "**/.opentofu/**"
+
+runtimes:
+  enabled:
+    - node@18.20.0
+    - python@3.11.0
+
+actions:
+  enabled:
+    - trunk-announce
+    - trunk-check-pre-push
+    - trunk-fmt-pre-commit
+    - trunk-upgrade-available

@@ -7,12 +7,13 @@ secrets/
 **/kubeconfig
 **/talosconfig
 
-# Terraform state and secrets — never commit
+# OpenTofu/Terraform state and secrets — never commit
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
 .terraform/
-.terraform.lock.hcl
+# .terraform.lock.hcl is intentionally NOT ignored — commit it to pin provider versions
 terraform.tfvars
+tfplan
 
 # OS
 .DS_Store
