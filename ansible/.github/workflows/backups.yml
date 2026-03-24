@@ -1,0 +1,41 @@
+name: Scheduled Infrastructure Backups
+
+on:
+  schedule:
+    # Run daily at 02:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+jobs:
+  backup:
+    name: Execute Remote Backup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install ansible-core
+          ansible-galaxy collection install community.mysql
+
+      - name: Run Backup Playbook
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          HETZNER_ACCESS_KEY: ${{ secrets.HETZNER_ACCESS_KEY }}
+          HETZNER_SECRET_KEY: ${{ secrets.HETZNER_SECRET_KEY }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          echo "$ANSIBLE_VAULT_PASSWORD" > .vault_pass
+          ansible-playbook -i inventory/hosts.ini playbooks/backup_to_hetzner.yml \
+            --vault-password-file .vault_pass \
+            -e "hetzner_access_key=$HETZNER_ACCESS_KEY" \
+            -e "hetzner_secret_key=$HETZNER_SECRET_KEY" \
+            -e "backup_passphrase=$BACKUP_PASSPHRASE"
+          rm .vault_pass

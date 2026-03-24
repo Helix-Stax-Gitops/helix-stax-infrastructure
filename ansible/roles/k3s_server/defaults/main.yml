@@ -1,0 +1,46 @@
+---
+# =============================================================================
+# K3s Server Role - Default Variables
+# =============================================================================
+
+# K3s version — pinned, never use "latest"
+k3s_version: "v1.32.3+k3s1"
+
+# Server IP for TLS SAN and kubeconfig rewrite
+k3s_server_ip: "178.156.233.12"
+
+# Additional TLS SANs (hostnames)
+k3s_tls_san_hostnames:
+  - helix-stax-cp
+
+# Disabled built-in components — we deploy our own Traefik + LB
+k3s_disable:
+  - traefik
+  - servicelb
+
+# Flannel CNI backend
+k3s_flannel_backend: vxlan
+
+# Kubeconfig permissions (restrictive — root only)
+k3s_write_kubeconfig_mode: "0600"
+
+# Etcd snapshot configuration
+k3s_etcd_snapshot_cron: "0 */6 * * *"
+k3s_etcd_snapshot_retention: 5
+
+# Enable secrets encryption at rest
+k3s_secrets_encryption: true
+
+# Enable embedded etcd (not SQLite)
+k3s_cluster_init: true
+
+# Path where kubeconfig is fetched to on the controller (local)
+k3s_local_kubeconfig_path: "{{ lookup('env', 'HOME') }}/.kube/helix-stax.yaml"
+
+# k3s-selinux RPM URL (AlmaLinux 9 / RHEL 9)
+k3s_selinux_rpm: "https://rpm.rancher.io/k3s/stable/common/centos/9/noarch/k3s-selinux-1.6-1.el9.noarch.rpm"
+
+# Timeouts for readiness checks
+k3s_node_ready_timeout: 120
+k3s_node_ready_retries: 24
+k3s_node_ready_delay: 5

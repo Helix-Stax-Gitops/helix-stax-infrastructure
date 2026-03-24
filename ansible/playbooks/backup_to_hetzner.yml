@@ -1,0 +1,6 @@
+---
+- name: Infrastructure Backup to Hetzner Object Storage
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: backup_hetzner

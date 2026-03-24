@@ -1,0 +1,13 @@
+---
+# OS hardening role defaults
+
+helix_stax_config_dir: /etc/helix-stax
+
+# Filesystem modules to disable (CIS 1.1.1.x)
+os_disabled_filesystems:
+  - cramfs
+  - freevxfs
+  - jffs2
+  - hfs
+  - hfsplus
+  - udf

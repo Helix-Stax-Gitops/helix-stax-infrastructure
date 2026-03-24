@@ -1,0 +1,8 @@
+---
+# Smoke test role defaults
+
+smoke_test_port: 22
+smoke_test_label: "unknown"
+smoke_test_timeout: 30
+
+helix_stax_config_dir: /etc/helix-stax

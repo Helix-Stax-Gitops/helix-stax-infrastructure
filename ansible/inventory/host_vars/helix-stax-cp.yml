@@ -1,0 +1,6 @@
+---
+# =============================================================================
+# helix-stax-cp (178.156.233.12) - Production Control Plane
+# =============================================================================
+
+# No host-specific overrides yet. Uses group_vars/all.yml + group_vars/prod.yml.

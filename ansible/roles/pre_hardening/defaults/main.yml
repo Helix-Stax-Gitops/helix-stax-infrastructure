@@ -1,0 +1,13 @@
+---
+# Pre-hardening role defaults
+
+pre_hardening_packages:
+  - policycoreutils-python-utils
+  - setools-console
+  - dnf-automatic
+  - chrony
+  - aide
+  - rsync
+
+# Audit trail directory
+helix_stax_config_dir: /etc/helix-stax

@@ -1,0 +1,60 @@
+---
+# roles/emergency_keys/tasks/main.yml
+
+- name: Ensure emergency keys directory exists
+  ansible.builtin.file:
+    path: "{{ emergency_keys_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: Deploy non-sensitive runbook pointers
+  ansible.builtin.copy:
+    src: RUNBOOK.md
+    dest: "{{ emergency_keys_dir }}/RUNBOOK.md"
+    mode: '0644'
+
+- name: Check for manual approval file
+  ansible.builtin.stat:
+    path: /etc/emergency-approval
+  register: emergency_keys_approval
+
+- name: Abort if approval not present
+  ansible.builtin.fail:
+    msg: "Emergency approval missing. Place /etc/emergency-approval to proceed."
+  when: not emergency_keys_approval.stat.exists
+
+- name: Fetch encrypted emergency archive from vault
+  ansible.builtin.get_url:
+    url: "{{ vault_emergency_archive_url }}"
+    dest: /tmp/emergency-keys.tar.gz.enc
+    mode: '0600'
+
+- name: Fetch passphrase from vault
+  ansible.builtin.set_fact:
+    emergency_keys_passphrase: "{{ lookup('community.hashi_vault.hashi_vault', 'secret=secret/data/' ~ vault_passphrase_secret) }}"
+
+- name: Check if decrypted archive already exists
+  ansible.builtin.stat:
+    path: /tmp/emergency-keys.tar.gz
+  register: emergency_keys_decrypted
+
+- name: Decrypt archive (idempotent)
+  ansible.builtin.command: >
+    openssl enc -d -aes-256-cbc -pbkdf2 -in /tmp/emergency-keys.tar.gz.enc
+    -out /tmp/emergency-keys.tar.gz -pass pass:{{ emergency_keys_passphrase }}
+  args:
+    creates: /tmp/emergency-keys.tar.gz
+  when: not emergency_keys_decrypted.stat.exists
+  no_log: true
+
+- name: Extract archive
+  ansible.builtin.unarchive:
+    src: /tmp/emergency-keys.tar.gz
+    dest: "{{ emergency_keys_dir }}"
+    remote_src: true
+    mode: '0700'
+
+- name: Secure cleanup of temporary files
+  ansible.builtin.file:
+    path: /tmp/emergency-keys.tar.gz
+    state: absent

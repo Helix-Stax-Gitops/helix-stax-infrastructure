@@ -1,0 +1,67 @@
+---
+# =============================================================================
+# CrowdSec Engine Installation
+# =============================================================================
+
+- name: Check if CrowdSec repo is already configured
+  ansible.builtin.stat:
+    path: /etc/yum.repos.d/crowdsec_crowdsec.repo
+  register: crowdsec_repo_check
+
+- name: Download CrowdSec repo script
+  ansible.builtin.get_url:
+    url: "{{ crowdsec_repo_url }}"
+    dest: /tmp/crowdsec_repo.sh
+    mode: "0700"
+  when: not crowdsec_repo_check.stat.exists
+
+- name: Install CrowdSec repo from downloaded script
+  ansible.builtin.command:
+    cmd: bash /tmp/crowdsec_repo.sh
+  args:
+    creates: /etc/yum.repos.d/crowdsec_crowdsec.repo
+  when: not crowdsec_repo_check.stat.exists
+
+- name: Clean up repo script
+  ansible.builtin.file:
+    path: /tmp/crowdsec_repo.sh
+    state: absent
+  when: not crowdsec_repo_check.stat.exists
+
+- name: Install CrowdSec Security Engine
+  ansible.builtin.dnf:
+    name: crowdsec
+    state: present
+
+- name: Install CrowdSec collections
+  ansible.builtin.command:
+    cmd: "cscli collections install {{ item }}"
+  register: crowdsec_collection_install
+  changed_when: "'overwrite' not in crowdsec_collection_install.stderr and 'already' not in crowdsec_collection_install.stderr"
+  failed_when:
+    - crowdsec_collection_install.rc != 0
+    - "'already' not in (crowdsec_collection_install.stderr | default(''))"
+  loop: "{{ crowdsec_collections }}"
+
+- name: Deploy acquisition configuration
+  ansible.builtin.template:
+    src: acquis.yaml.j2
+    dest: /etc/crowdsec/acquis.yaml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart crowdsec
+
+- name: Start and enable CrowdSec
+  ansible.builtin.systemd:
+    name: crowdsec
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Wait for CrowdSec LAPI to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 8080
+    timeout: 30
+    state: started

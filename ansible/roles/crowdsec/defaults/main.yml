@@ -1,0 +1,13 @@
+---
+# CrowdSec role defaults
+
+crowdsec_repo_url: "https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh"
+crowdsec_collections:
+  - crowdsecurity/linux
+  - crowdsecurity/sshd
+crowdsec_bouncer_type: nftables
+crowdsec_lapi_listen: "127.0.0.1:8080"
+crowdsec_console_enroll: false
+crowdsec_console_key: ""
+
+helix_stax_config_dir: /etc/helix-stax

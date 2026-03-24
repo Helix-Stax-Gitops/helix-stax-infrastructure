@@ -1,0 +1,9 @@
+---
+# SSH port migration role defaults
+
+ssh_port_new: 2222
+ssh_port_old: 22
+ssh_port_verify_timeout: 30
+ssh_allowed_users:
+  - wakeem
+helix_stax_config_dir: /etc/helix-stax

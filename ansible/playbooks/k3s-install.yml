@@ -1,0 +1,33 @@
+---
+# =============================================================================
+# K3s Installation Playbook
+# Purpose: Install K3s on control plane node(s)
+# Target: helix-stax-cp (178.156.233.12)
+# Usage:
+#   ansible-playbook playbooks/k3s-install.yml -i inventory/hosts.ini -l prod_cp
+#   # Or with local connection:
+#   ansible-playbook playbooks/k3s-install.yml -i /tmp/cp-inventory.ini
+# =============================================================================
+
+- name: Install K3s on control plane
+  hosts: "{{ target_hosts | default('k3s_servers') }}"
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Display target information
+      ansible.builtin.debug:
+        msg: >-
+          Installing K3s on {{ inventory_hostname }}
+          ({{ ansible_host | default('localhost') }})
+
+  roles:
+    - role: k3s_server
+
+  post_tasks:
+    - name: Installation summary
+      ansible.builtin.debug:
+        msg:
+          - "K3s installation complete on {{ inventory_hostname }}"
+          - "Kubeconfig saved to {{ k3s_local_kubeconfig_path }}"
+          - "Use: export KUBECONFIG={{ k3s_local_kubeconfig_path }}"

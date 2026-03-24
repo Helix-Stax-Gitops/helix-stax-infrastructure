@@ -1,0 +1,71 @@
+---
+# =============================================================================
+# Smoke Test Role (Reusable)
+# Purpose: Verify SSH connectivity and basic health after each phase.
+# Used between every phase in the master playbook.
+# =============================================================================
+
+- name: "Smoke test [{{ smoke_test_label }}]: Wait for SSH on port {{ smoke_test_port }}"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ smoke_test_port }}"
+    timeout: "{{ smoke_test_timeout }}"
+    state: started
+  delegate_to: localhost
+  become: false
+
+- name: "Smoke test [{{ smoke_test_label }}]: Verify SSH authentication"
+  ansible.builtin.command:
+    cmd: whoami
+  vars:
+    ansible_port: "{{ smoke_test_port }}"
+  become: false
+  register: smoke_test_whoami
+  changed_when: false
+
+- name: "Smoke test [{{ smoke_test_label }}]: Confirm user identity"
+  ansible.builtin.assert:
+    that:
+      - smoke_test_whoami.rc == 0
+      - smoke_test_whoami.stdout == ansible_user
+    fail_msg: >-
+      Smoke test FAILED at "{{ smoke_test_label }}".
+      SSH auth on port {{ smoke_test_port }} did not succeed or connected as wrong user
+      (got "{{ smoke_test_whoami.stdout }}", expected "{{ ansible_user }}").
+      Check /var/log/secure on the target host.
+    success_msg: "SSH auth OK on port {{ smoke_test_port }} as {{ smoke_test_whoami.stdout }}"
+
+- name: "Smoke test [{{ smoke_test_label }}]: Check SELinux status"
+  ansible.builtin.command:
+    cmd: getenforce
+  vars:
+    ansible_port: "{{ smoke_test_port }}"
+  register: smoke_test_selinux
+  changed_when: false
+
+- name: "Smoke test [{{ smoke_test_label }}]: Verify SELinux is enforcing"
+  ansible.builtin.assert:
+    that:
+      - smoke_test_selinux.stdout == "Enforcing"
+    fail_msg: >-
+      SELinux is {{ smoke_test_selinux.stdout }} at "{{ smoke_test_label }}".
+      Expected Enforcing. Do not proceed.
+    success_msg: "SELinux Enforcing confirmed"
+
+- name: "Smoke test [{{ smoke_test_label }}]: Log phase completion"
+  ansible.builtin.lineinfile:
+    path: "{{ helix_stax_config_dir }}/hardening-phase"
+    line: "smoke_test_{{ smoke_test_label | regex_replace('[^a-zA-Z0-9]', '_') }}: passed at {{ ansible_date_time.iso8601 }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    ansible_port: "{{ smoke_test_port }}"
+
+- name: "Smoke test [{{ smoke_test_label }}]: PASSED"
+  ansible.builtin.debug:
+    msg: >-
+      Smoke test "{{ smoke_test_label }}" PASSED.
+      SSH port {{ smoke_test_port }}: OK.
+      SELinux: Enforcing.

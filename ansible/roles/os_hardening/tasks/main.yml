@@ -1,0 +1,195 @@
+---
+# =============================================================================
+# Phase 2: OS Hardening
+# Purpose: Apply CIS Level 1 hardening via dev-sec collection + additional controls.
+# Risk level: Medium. Some sysctl/permission changes can break services.
+#
+# This role wraps devsec.hardening.ssh_hardening and devsec.hardening.os_hardening
+# with our overrides, then applies additional CIS controls not covered by dev-sec.
+# =============================================================================
+
+# -------------------------------------------------------------------------
+# 2.1: Apply dev-sec SSH hardening
+# -------------------------------------------------------------------------
+- name: Apply dev-sec SSH hardening
+  ansible.builtin.include_role:
+    name: devsec.hardening.ssh_hardening
+
+# -------------------------------------------------------------------------
+# 2.2: Apply dev-sec OS hardening
+# -------------------------------------------------------------------------
+- name: Apply dev-sec OS hardening
+  ansible.builtin.include_role:
+    name: devsec.hardening.os_hardening
+
+# -------------------------------------------------------------------------
+# 2.3: Additional CIS controls not covered by dev-sec
+# -------------------------------------------------------------------------
+
+# CIS 1.1.1.x - Disable unused filesystems
+- name: "CIS 1.1.1.x: Disable unused filesystem modules"
+  ansible.builtin.copy:
+    content: |
+      install {{ item }} /bin/true
+      blacklist {{ item }}
+    dest: "/etc/modprobe.d/helix-disable-{{ item }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ os_disabled_filesystems }}"
+
+# CIS 3.4.x - Ensure firewalld service is running (default state, no rules)
+- name: "CIS 3.4.x: Ensure firewalld is installed"
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+
+- name: "CIS 3.4.x: Ensure firewalld is running"
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+# K3s pod networking: trust CNI interfaces and pod/service CIDRs
+# Without this, firewalld nftables rules block pod-to-pod traffic
+- name: "K3s: Add cni0 to trusted zone"
+  ansible.posix.firewalld:
+    zone: trusted
+    interface: cni0
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: "K3s: Add flannel.1 to trusted zone"
+  ansible.posix.firewalld:
+    zone: trusted
+    interface: flannel.1
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: "K3s: Trust pod CIDR (10.42.0.0/16)"
+  ansible.posix.firewalld:
+    zone: trusted
+    source: 10.42.0.0/16
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: "K3s: Trust service CIDR (10.43.0.0/16)"
+  ansible.posix.firewalld:
+    zone: trusted
+    source: 10.43.0.0/16
+    permanent: true
+    immediate: true
+    state: enabled
+
+# Permit new SSH port BEFORE any reload/restart so the connection is never dropped
+- name: "Permit SSH on port {{ ssh_port_new }} in firewalld"
+  ansible.posix.firewalld:
+    port: "{{ ssh_port_new }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  when: ssh_port_new is defined
+
+- name: Ensure SSH service enabled in firewalld
+  ansible.posix.firewalld:
+    service: ssh
+    permanent: true
+    immediate: true
+    state: enabled
+
+# CIS 4.1.x - Auditd
+- name: "CIS 4.1.x: Ensure auditd is installed"
+  ansible.builtin.dnf:
+    name:
+      - audit
+      - audit-libs
+    state: present
+
+- name: "CIS 4.1.x: Ensure auditd is running"
+  ansible.builtin.systemd:
+    name: auditd
+    state: started
+    enabled: true
+
+# CIS 4.2.x - Rsyslog
+- name: "CIS 4.2.x: Ensure rsyslog is installed"
+  ansible.builtin.dnf:
+    name: rsyslog
+    state: present
+
+- name: "CIS 4.2.x: Ensure rsyslog is running"
+  ansible.builtin.systemd:
+    name: rsyslog
+    state: started
+    enabled: true
+
+# CIS 5.3.x - PAM password quality
+- name: "CIS 5.3.x: Ensure libpwquality is installed"
+  ansible.builtin.dnf:
+    name: libpwquality
+    state: present
+
+- name: "CIS 5.3.x: Configure password quality requirements"
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: "^{{ item.key }}"
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+  loop:
+    - { key: "minlen", value: "14" }
+    - { key: "dcredit", value: "-1" }
+    - { key: "ucredit", value: "-1" }
+    - { key: "ocredit", value: "-1" }
+    - { key: "lcredit", value: "-1" }
+
+# CIS 5.4.x - User account settings
+- name: "CIS 5.4.x: Set password aging in login.defs"
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: "^{{ item.key }}"
+    line: "{{ item.key }}\t{{ item.value }}"
+    state: present
+  loop:
+    - { key: "PASS_MAX_DAYS", value: "90" }
+    - { key: "PASS_MIN_DAYS", value: "7" }
+    - { key: "PASS_WARN_AGE", value: "7" }
+
+# -------------------------------------------------------------------------
+# 2.4: Verify K3s-critical sysctl values survived hardening
+# net.bridge.* requires br_netfilter module (loaded by K3s at install time).
+# We verify the value only when the key exists in /proc/sys; skip silently
+# if the module is not yet loaded — K3s will load it and the sysctl.d file
+# ensures the correct value applies on load.
+# -------------------------------------------------------------------------
+- name: Verify K3s sysctl values are set correctly
+  ansible.builtin.command:
+    cmd: "sysctl -n {{ item.key }}"
+  register: os_hardening_sysctl_check
+  changed_when: false
+  failed_when:
+    - os_hardening_sysctl_check.rc == 0
+    - os_hardening_sysctl_check.stdout | trim != item.value | string
+  loop: "{{ k3s_sysctl_required | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}={{ item.value }}"
+
+# -------------------------------------------------------------------------
+# 2.5: Update phase marker
+# -------------------------------------------------------------------------
+- name: Update phase marker
+  ansible.builtin.copy:
+    content: |
+      phase: 2-os-hardening
+      status: completed
+      timestamp: {{ ansible_date_time.iso8601 }}
+      ssh_port: {{ ssh_port_new }}
+      selinux: enforcing
+      cis_level: 1
+      dev_sec_applied: true
+    dest: "{{ helix_stax_config_dir }}/hardening-phase"
+    owner: root
+    group: root
+    mode: "0644"

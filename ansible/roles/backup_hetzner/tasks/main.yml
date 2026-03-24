@@ -1,0 +1,52 @@
+- name: Create database dump (MySQL stub)
+  ansible.builtin.shell: >
+    mysqldump --single-transaction --all-databases -u {{ backup_db_user }} > /tmp/db_dump-{{ ansible_date_time.date }}.sql
+  when: backup_db_enabled | bool
+  no_log: true
+
+- name: Create encrypted backup archive
+  ansible.builtin.command: >
+    bash -lc "tar czf /tmp/{{ backup_archive_name }} 
+    {% for path in backup_exclude %} --exclude={{ path }}{% endfor %}
+    {{ backup_paths | join(' ') }} 
+    {% if backup_db_enabled | bool %}/tmp/db_dump-{{ ansible_date_time.date }}.sql{% endif %} &&
+    openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/{{ backup_archive_name }}
+    -out /tmp/{{ backup_archive_name }}.enc -pass pass:{{ backup_passphrase }}"
+  args:
+    creates: "/tmp/{{ backup_archive_name }}.enc"
+  no_log: true
+
+- name: Generate archive metadata (JSON)
+  ansible.builtin.copy:
+    content: |
+      {
+        "host": "{{ inventory_hostname }}",
+        "timestamp": "{{ ansible_date_time.iso8601 }}",
+        "archive": "{{ backup_archive_name }}.enc",
+        "paths": {{ backup_paths | to_json }},
+        "retention": "90d"
+      }
+    dest: "{{ backup_metadata_file }}"
+
+- name: Generate archive checksum
+  ansible.builtin.shell: >
+    sha256sum /tmp/{{ backup_archive_name }}.enc > /tmp/{{ backup_archive_name }}.sha256
+  args:
+    creates: "/tmp/{{ backup_archive_name }}.sha256"
+
+- name: Upload encrypted backup, checksum, and metadata to Hetzner Object Storage
+  ansible.builtin.command: >
+    aws --endpoint-url {{ hetzner_s3_endpoint }} s3 cp
+    {{ item }} s3://{{ hetzner_bucket }}/backups/
+  loop:
+    - "/tmp/{{ backup_archive_name }}.enc"
+    - "/tmp/{{ backup_archive_name }}.sha256"
+    - "{{ backup_metadata_file }}"
+  register: upload_result
+  until: upload_result is succeeded
+  retries: 3
+  delay: 10
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ hetzner_access_key }}"
+    AWS_SECRET_ACCESS_KEY: "{{ hetzner_secret_key }}"
+  no_log: true

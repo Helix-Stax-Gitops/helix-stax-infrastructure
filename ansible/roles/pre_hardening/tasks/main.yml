@@ -1,0 +1,86 @@
+---
+# =============================================================================
+# Phase 0: Pre-Hardening
+# Purpose: Prepare the server and create a safety net before any changes.
+# Risk level: Low (no destructive changes)
+# =============================================================================
+
+- name: Validate connectivity
+  ansible.builtin.ping:
+
+- name: Gather system facts
+  ansible.builtin.setup:
+    gather_subset:
+      - "!all"
+      - "!min"
+      - distribution
+      - distribution_version
+      - os_family
+      - selinux
+      - date_time
+      - default_ipv4
+
+- name: Verify AlmaLinux 9
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "AlmaLinux"
+      - ansible_distribution_major_version == "9"
+    fail_msg: >-
+      Expected AlmaLinux 9 but found {{ ansible_distribution }}
+      {{ ansible_distribution_version }}. Aborting.
+    success_msg: "OS verified: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+- name: Verify SELinux is enforcing
+  ansible.builtin.command:
+    cmd: getenforce
+  register: pre_hardening_selinux_status
+  changed_when: false
+
+- name: Fail if SELinux is not enforcing
+  ansible.builtin.assert:
+    that:
+      - pre_hardening_selinux_status.stdout == "Enforcing"
+    fail_msg: >-
+      SELinux must be in Enforcing mode. Current: {{ pre_hardening_selinux_status.stdout }}.
+      Never disable SELinux. Fix this manually before re-running.
+    success_msg: "SELinux is Enforcing"
+
+- name: Install prerequisite packages
+  ansible.builtin.dnf:
+    name: "{{ pre_hardening_packages }}"
+    state: present
+
+- name: Enable and start chronyd
+  ansible.builtin.systemd:
+    name: chronyd
+    state: started
+    enabled: true
+
+- name: Verify chrony is synchronized
+  ansible.builtin.command:
+    cmd: chronyc tracking
+  register: pre_hardening_chrony_status
+  changed_when: false
+  failed_when: false
+
+- name: Create helix-stax config directory
+  ansible.builtin.file:
+    path: "{{ helix_stax_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write pre-hardening phase marker
+  ansible.builtin.copy:
+    content: |
+      phase: 0-pre-hardening
+      status: started
+      timestamp: {{ ansible_date_time.iso8601 }}
+      hostname: {{ inventory_hostname }}
+      os: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      selinux: {{ pre_hardening_selinux_status.stdout }}
+    dest: "{{ helix_stax_config_dir }}/hardening-phase"
+    owner: root
+    group: root
+    mode: "0644"

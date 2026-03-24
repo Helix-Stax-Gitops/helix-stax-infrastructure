@@ -1,0 +1,66 @@
+---
+# =============================================================================
+# Helix Stax - Shared Variables (all servers)
+# =============================================================================
+
+# SSH Configuration
+ssh_port_new: 2222
+ssh_port_old: 22
+ssh_allowed_users:
+  - wakeem
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+ssh_max_auth_tries: 3
+ssh_port_verify_timeout: 30
+
+# SELinux (non-negotiable: always enforcing)
+selinux_state: enforcing
+
+# CrowdSec
+crowdsec_repo_url: "https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh"
+crowdsec_collections:
+  - crowdsecurity/linux
+  - crowdsecurity/sshd
+crowdsec_bouncer_type: nftables
+crowdsec_lapi_listen: "127.0.0.1:8080"
+crowdsec_console_enroll: false
+crowdsec_console_key: ""
+
+# K3s readiness (sysctl values needed BEFORE k3s install)
+k3s_sysctl_required:
+  net.ipv4.ip_forward: 1
+  net.bridge.bridge-nf-call-iptables: 1
+  net.bridge.bridge-nf-call-ip6tables: 1
+  net.ipv4.conf.all.forwarding: 1
+  net.ipv6.conf.all.forwarding: 1
+
+# dev-sec OS hardening overrides
+os_auth_pw_max_age: 90
+os_auth_pw_min_age: 7
+os_auth_retries: 3
+os_security_users_allow: "{{ ssh_allowed_users }}"
+os_security_kernel_enable_module_loading: true
+os_security_kernel_enable_core_dump: false
+os_security_suid_sgid_enforce: true
+os_security_suid_sgid_remove_from_unknown: false
+sysctl_overwrite:
+  net.ipv4.ip_forward: 1
+  net.bridge.bridge-nf-call-iptables: 1
+  net.bridge.bridge-nf-call-ip6tables: 1
+  net.ipv4.conf.all.forwarding: 1
+  net.ipv6.conf.all.forwarding: 1
+
+# dev-sec SSH hardening overrides
+ssh_server_ports:
+  - "{{ ssh_port_new }}"
+ssh_allow_users: "{{ ssh_allowed_users | join(' ') }}"
+ssh_print_motd: true
+ssh_print_last_log: true
+ssh_client_alive_interval: 300
+ssh_client_alive_count_max: 3
+ssh_challengeresponse_authentication: false
+ssh_permit_empty_passwords: false
+ssh_max_sessions: 5
+ssh_use_dns: false
+ssh_hardening_enabled: true

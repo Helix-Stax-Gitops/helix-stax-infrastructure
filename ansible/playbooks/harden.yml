@@ -1,0 +1,113 @@
+---
+# =============================================================================
+# Helix Stax - Master Hardening Playbook
+# =============================================================================
+#
+# Transforms a stock AlmaLinux 9.7 server into a CIS-compliant, hardened host.
+#
+# Usage:
+#   Full run:     ansible-playbook playbooks/harden.yml -e target_hosts=test
+#   Phase 1 only: ansible-playbook playbooks/harden.yml -e target_hosts=test --tags phase1
+#   Skip CrowdSec: ansible-playbook playbooks/harden.yml -e target_hosts=test --skip-tags phase3
+#   Dry run:      ansible-playbook playbooks/harden.yml -e target_hosts=test --check
+#
+# Phases:
+#   0 (pre):  Prerequisites, package install, SELinux verify, audit trail
+#   1 (ssh):  SSH port migration 22 -> 2222 (CRITICAL - lockout prevention)
+#   2 (cis):  dev-sec CIS hardening + additional controls
+#   3 (ids):  CrowdSec engine + nftables bouncer
+#
+# Each phase ends with a smoke test. If a smoke test fails, the playbook stops.
+# =============================================================================
+
+- name: Harden AlmaLinux 9 Server
+  hosts: "{{ target_hosts | default('test') }}"
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Capture inventory connection port before any role shadows ansible_port
+      ansible.builtin.set_fact:
+        ssh_port_inventory: "{{ ansible_port | int }}"
+      tags: [always]
+
+    - name: Display target information
+      ansible.builtin.debug:
+        msg: >-
+          Hardening {{ inventory_hostname }} ({{ ansible_host }}).
+          Current SSH port: {{ ssh_port_inventory }}.
+          Target SSH port: {{ ssh_port_new | default(2222) }}.
+
+  roles:
+    # Phase 0: Pre-Hardening
+    - role: pre_hardening
+      tags: [phase0, prerequisites]
+
+    - role: smoke_test
+      vars:
+        smoke_test_port: "{{ ssh_port_inventory }}"
+        smoke_test_label: "Phase 0 complete"
+      tags: [phase0, smoke]
+
+    # Phase 1: SSH Port Migration
+    - role: ssh_port_migration
+      tags: [phase1, ssh]
+
+    - role: smoke_test
+      vars:
+        smoke_test_port: "{{ ssh_port_new }}"
+        smoke_test_label: "Phase 1 complete"
+      tags: [phase1, smoke]
+
+    # Phase 2: OS Hardening (dev-sec CIS)
+    - role: os_hardening
+      tags: [phase2, cis]
+
+    - role: smoke_test
+      vars:
+        smoke_test_port: "{{ ssh_port_new }}"
+        smoke_test_label: "Phase 2 complete"
+      tags: [phase2, smoke]
+
+    # Phase 3: CrowdSec IDS
+    - role: crowdsec
+      tags: [phase3, ids]
+
+    - role: smoke_test
+      vars:
+        smoke_test_port: "{{ ssh_port_new }}"
+        smoke_test_label: "Phase 3 complete (HARDENING DONE)"
+      tags: [phase3, smoke]
+
+  post_tasks:
+    - name: Write hardening completion marker
+      ansible.builtin.copy:
+        content: |
+          hardening_completed: {{ ansible_date_time.iso8601 }}
+          ssh_port: {{ ssh_port_new }}
+          selinux: enforcing
+          crowdsec: active
+          cis_level: 1
+          k3s_sysctl_ready: true
+        dest: /etc/helix-stax/hardening-complete
+        owner: root
+        group: root
+        mode: "0644"
+      tags: [always]
+
+    - name: Display completion summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          HARDENING COMPLETE: {{ inventory_hostname }}
+          ============================================
+          SSH port:    {{ ssh_port_new }}
+          SELinux:     Enforcing
+          CrowdSec:    Active (engine + bouncer)
+          CIS Level:   1
+          K3s ready:   sysctl values pre-configured
+          ============================================
+          NEXT: Update inventory ansible_port to {{ ssh_port_new }}
+                for subsequent playbook runs.
+          ============================================
+      tags: [always]

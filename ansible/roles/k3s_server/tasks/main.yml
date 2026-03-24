@@ -1,0 +1,252 @@
+---
+# =============================================================================
+# K3s Server Installation Role
+# Purpose: Install K3s on a hardened AlmaLinux 9 control plane node.
+# Idempotent: safe to run multiple times (creates guard on k3s binary).
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Phase 1: Pre-flight checks
+# ---------------------------------------------------------------------------
+
+- name: Verify SELinux is enforcing
+  ansible.builtin.command:
+    cmd: getenforce
+  register: k3s_selinux_status
+  changed_when: false
+
+- name: Fail if SELinux is not enforcing
+  ansible.builtin.assert:
+    that:
+      - k3s_selinux_status.stdout == "Enforcing"
+    fail_msg: >-
+      SELinux must be Enforcing before K3s install.
+      Current: {{ k3s_selinux_status.stdout }}.
+    success_msg: "SELinux is Enforcing"
+
+- name: Verify ip_forward is enabled
+  ansible.builtin.command:
+    cmd: sysctl -n net.ipv4.ip_forward
+  register: k3s_ip_forward
+  changed_when: false
+
+- name: Fail if ip_forward is not enabled
+  ansible.builtin.assert:
+    that:
+      - k3s_ip_forward.stdout | trim == "1"
+    fail_msg: "net.ipv4.ip_forward must be 1. Current: {{ k3s_ip_forward.stdout | trim }}"
+    success_msg: "ip_forward is enabled"
+
+- name: Verify br_netfilter module is loaded
+  ansible.builtin.command:
+    cmd: lsmod
+  register: k3s_lsmod
+  changed_when: false
+
+- name: Fail if br_netfilter is not loaded
+  ansible.builtin.assert:
+    that:
+      - "'br_netfilter' in k3s_lsmod.stdout"
+    fail_msg: "br_netfilter kernel module is not loaded. Load it first."
+    success_msg: "br_netfilter module is loaded"
+
+# ---------------------------------------------------------------------------
+# Phase 2: Install k3s-selinux package
+# ---------------------------------------------------------------------------
+
+- name: Install container-selinux dependency
+  ansible.builtin.dnf:
+    name: container-selinux
+    state: present
+
+- name: Check if k3s-selinux is already installed
+  ansible.builtin.command:
+    cmd: rpm -q k3s-selinux
+  register: k3s_selinux_rpm_check
+  changed_when: false
+  failed_when: false
+
+- name: Install k3s-selinux RPM
+  ansible.builtin.dnf:
+    name: "{{ k3s_selinux_rpm }}"
+    state: present
+    disable_gpg_check: true
+  when: k3s_selinux_rpm_check.rc != 0
+
+# ---------------------------------------------------------------------------
+# Phase 3: Install K3s server
+# ---------------------------------------------------------------------------
+
+- name: Check if K3s is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+
+- name: Download and install K3s
+  ansible.builtin.shell:
+    cmd: >-
+      curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - server
+      {% for item in k3s_disable %}
+      --disable={{ item }}
+      {% endfor %}
+      --flannel-backend={{ k3s_flannel_backend }}
+      --write-kubeconfig-mode={{ k3s_write_kubeconfig_mode }}
+      --tls-san={{ k3s_server_ip }}
+      {% for san in k3s_tls_san_hostnames %}
+      --tls-san={{ san }}
+      {% endfor %}
+      {% if k3s_cluster_init | bool %}
+      --cluster-init
+      {% endif %}
+      --etcd-snapshot-schedule-cron="{{ k3s_etcd_snapshot_cron }}"
+      --etcd-snapshot-retention={{ k3s_etcd_snapshot_retention }}
+      {% if k3s_secrets_encryption | bool %}
+      --secrets-encryption
+      {% endif %}
+  args:
+    creates: /usr/local/bin/k3s
+  no_log: true
+  register: k3s_install_result
+
+- name: Ensure k3s service is enabled and started
+  ansible.builtin.systemd:
+    name: k3s
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# ---------------------------------------------------------------------------
+# Phase 4: Wait for K3s readiness
+# ---------------------------------------------------------------------------
+
+- name: Wait for K3s node to be Ready
+  ansible.builtin.command:
+    cmd: >-
+      /usr/local/bin/k3s kubectl get nodes
+      -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}'
+  register: k3s_node_ready
+  until: k3s_node_ready.stdout == "True"
+  retries: "{{ k3s_node_ready_retries }}"
+  delay: "{{ k3s_node_ready_delay }}"
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for coredns to be running
+  ansible.builtin.command:
+    cmd: >-
+      /usr/local/bin/k3s kubectl get pods -n kube-system
+      -l k8s-app=kube-dns
+      -o jsonpath='{.items[0].status.phase}'
+  register: k3s_coredns_status
+  until: k3s_coredns_status.stdout == "Running"
+  retries: "{{ k3s_node_ready_retries }}"
+  delay: "{{ k3s_node_ready_delay }}"
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+# ---------------------------------------------------------------------------
+# Phase 5: Verification
+# ---------------------------------------------------------------------------
+
+- name: Get K3s version
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s --version
+  register: k3s_installed_version
+  changed_when: false
+
+- name: Show K3s version
+  ansible.builtin.debug:
+    msg: "{{ k3s_installed_version.stdout }}"
+
+- name: Get node status
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s kubectl get nodes -o wide
+  register: k3s_nodes
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Show node status
+  ansible.builtin.debug:
+    msg: "{{ k3s_nodes.stdout_lines }}"
+
+- name: Get kube-system pods
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s kubectl get pods -n kube-system -o wide
+  register: k3s_system_pods
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Show kube-system pods
+  ansible.builtin.debug:
+    msg: "{{ k3s_system_pods.stdout_lines }}"
+
+- name: Run k3s check-config
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s check-config
+  register: k3s_check_config
+  changed_when: false
+  failed_when: false
+
+- name: Show k3s check-config output
+  ansible.builtin.debug:
+    msg: "{{ k3s_check_config.stdout_lines }}"
+
+# ---------------------------------------------------------------------------
+# Phase 6: Fetch kubeconfig
+# ---------------------------------------------------------------------------
+
+- name: Read kubeconfig from server
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  register: k3s_kubeconfig_raw
+
+- name: Write kubeconfig with public IP
+  ansible.builtin.copy:
+    content: "{{ k3s_kubeconfig_raw.content | b64decode | regex_replace('127\\.0\\.0\\.1', k3s_server_ip) }}"
+    dest: /tmp/helix-stax-kubeconfig.yaml
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+
+- name: Ensure .kube directory exists
+  ansible.builtin.file:
+    path: "{{ k3s_local_kubeconfig_path | dirname }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: "0700"
+
+- name: Fetch kubeconfig to controller
+  ansible.builtin.fetch:
+    src: /tmp/helix-stax-kubeconfig.yaml
+    dest: "{{ k3s_local_kubeconfig_path }}"
+    flat: true
+  when: not (ansible_connection == 'local')
+
+- name: Copy kubeconfig locally when running local connection
+  ansible.builtin.copy:
+    src: /tmp/helix-stax-kubeconfig.yaml
+    dest: "{{ k3s_local_kubeconfig_path }}"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    mode: "0600"
+  when: ansible_connection == 'local'
+
+- name: Write installation phase marker
+  ansible.builtin.copy:
+    content: |
+      phase: k3s-install
+      status: completed
+      timestamp: {{ ansible_date_time.iso8601 | default('unknown') }}
+      hostname: {{ inventory_hostname }}
+      k3s_version: {{ k3s_version }}
+      flannel_backend: {{ k3s_flannel_backend }}
+      etcd: embedded
+      secrets_encryption: {{ k3s_secrets_encryption }}
+    dest: /etc/helix-stax/k3s-install-phase
+    owner: root
+    group: root
+    mode: "0644"

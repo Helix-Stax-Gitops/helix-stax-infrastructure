@@ -1,0 +1,6 @@
+---
+- name: Site-wide Infrastructure Configuration
+  hosts: all
+  gather_facts: false
+  roles:
+    - emergency_keys

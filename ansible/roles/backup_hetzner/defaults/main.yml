@@ -1,0 +1,38 @@
+# Exclude ephemeral and system directories
+backup_exclude:
+  - /proc
+  - /sys
+  - /dev
+  - /tmp
+  - /run
+
+# Database backup configuration (stubs)
+backup_db_enabled: false
+backup_db_name: all
+backup_db_user: root
+
+# Metadata configuration
+backup_metadata_file: "/tmp/{{ backup_archive_name }}.metadata.json"
+
+# Paths to include in the backup archive
+backup_paths:
+  - /etc/
+  - /root/
+  - /home/
+  - /var/www/
+  - /opt/
+  - /var/lib/docker/volumes/
+
+# Name of the target bucket
+hetzner_bucket: hearts
+
+# Endpoint for Hetzner Helsinki (hel1)
+hetzner_s3_endpoint: https://hel1.your-objectstorage.com
+
+# Vault pointers (to be overridden in vault or group_vars)
+# backup_passphrase: "vault:..."
+# hetzner_access_key: "vault:..."
+# hetzner_secret_key: "vault:..."
+
+# Internal variable for unique archive naming
+backup_archive_name: "backup-{{ ansible_date_time.date }}.tar.gz"

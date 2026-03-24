@@ -1,0 +1,56 @@
+---
+# =============================================================================
+# CrowdSec Post-Install Configuration
+# =============================================================================
+
+# Optional: Console enrollment (deferred by default)
+- name: Enroll with CrowdSec Console
+  ansible.builtin.command:
+    cmd: "cscli console enroll {{ crowdsec_console_key }}"
+  when:
+    - crowdsec_console_enroll | bool
+    - crowdsec_console_key | length > 0
+  changed_when: true
+
+# Verify CrowdSec is functional
+- name: Verify CrowdSec engine is active
+  ansible.builtin.command:
+    cmd: systemctl is-active crowdsec
+  register: crowdsec_engine_status
+  changed_when: false
+  failed_when: crowdsec_engine_status.stdout != "active"
+
+- name: Verify CrowdSec bouncer is active
+  ansible.builtin.command:
+    cmd: systemctl is-active crowdsec-firewall-bouncer
+  register: crowdsec_bouncer_status
+  changed_when: false
+  failed_when: crowdsec_bouncer_status.stdout != "active"
+
+- name: Collect CrowdSec metrics
+  ansible.builtin.command:
+    cmd: cscli metrics
+  register: crowdsec_metrics
+  changed_when: false
+  failed_when: false
+
+- name: Display CrowdSec metrics
+  ansible.builtin.debug:
+    msg: "{{ crowdsec_metrics.stdout_lines }}"
+  when: crowdsec_metrics.rc == 0
+
+# Update phase marker
+- name: Update phase marker
+  ansible.builtin.copy:
+    content: |
+      phase: 3-crowdsec
+      status: completed
+      timestamp: {{ ansible_date_time.iso8601 }}
+      crowdsec_engine: active
+      crowdsec_bouncer: {{ crowdsec_bouncer_type }}
+      crowdsec_collections: {{ crowdsec_collections | to_json }}
+      console_enrolled: {{ crowdsec_console_enroll }}
+    dest: "{{ helix_stax_config_dir }}/hardening-phase"
+    owner: root
+    group: root
+    mode: "0644"

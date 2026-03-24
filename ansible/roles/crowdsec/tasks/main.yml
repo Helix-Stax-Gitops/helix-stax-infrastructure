@@ -1,0 +1,15 @@
+---
+# =============================================================================
+# Phase 3: CrowdSec
+# Purpose: Install and configure CrowdSec Security Engine + firewall bouncer.
+# Risk level: Medium-low. CrowdSec listens passively; the bouncer is additive.
+# =============================================================================
+
+- name: Install CrowdSec engine
+  ansible.builtin.include_tasks: install_engine.yml
+
+- name: Install CrowdSec firewall bouncer
+  ansible.builtin.include_tasks: install_bouncer.yml
+
+- name: Configure CrowdSec
+  ansible.builtin.include_tasks: configure.yml

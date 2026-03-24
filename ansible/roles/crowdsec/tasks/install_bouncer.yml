@@ -1,0 +1,47 @@
+---
+# =============================================================================
+# CrowdSec Firewall Bouncer Installation (nftables)
+# =============================================================================
+
+- name: Install CrowdSec firewall bouncer (nftables)
+  ansible.builtin.dnf:
+    name: "crowdsec-firewall-bouncer-{{ crowdsec_bouncer_type }}"
+    state: present
+
+# The bouncer auto-generates an API key during install. If it fails
+# (race condition with engine startup), we register manually.
+- name: Check if bouncer is already registered
+  ansible.builtin.command:
+    cmd: cscli bouncers list -o json
+  register: crowdsec_bouncer_list
+  changed_when: false
+
+- name: Register bouncer manually if not already registered
+  ansible.builtin.command:
+    cmd: cscli bouncers add firewall-bouncer -o raw
+  register: crowdsec_bouncer_key
+  changed_when: true
+  no_log: true
+  when: "'firewall-bouncer' not in crowdsec_bouncer_list.stdout"
+
+- name: Read current bouncer config
+  ansible.builtin.slurp:
+    src: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+  register: crowdsec_bouncer_config_raw
+  when: crowdsec_bouncer_key is changed
+
+- name: Update bouncer API key if manually registered
+  ansible.builtin.lineinfile:
+    path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    regexp: "^api_key:"
+    line: "api_key: {{ crowdsec_bouncer_key.stdout | trim }}"
+  when: crowdsec_bouncer_key is changed
+  no_log: true
+  notify: Restart crowdsec-firewall-bouncer
+
+- name: Start and enable CrowdSec firewall bouncer
+  ansible.builtin.systemd:
+    name: crowdsec-firewall-bouncer
+    state: started
+    enabled: true
+    daemon_reload: true

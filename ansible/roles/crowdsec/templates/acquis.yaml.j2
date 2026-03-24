@@ -1,0 +1,15 @@
+---
+# CrowdSec acquisition configuration
+# Managed by Ansible - do not edit manually
+
+filenames:
+  - /var/log/secure
+  - /var/log/messages
+labels:
+  type: syslog
+---
+source: journalctl
+journalctl_filter:
+  - "_SYSTEMD_UNIT=sshd.service"
+labels:
+  type: syslog
