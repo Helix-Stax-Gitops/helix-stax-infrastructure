@@ -1,51 +1,63 @@
+---
+template: feature-request
+category: agile
+task_type: feature
+clickup_list: "02 Platform Engineering"
+auto_tags: ["feature-request", "product"]
+required_fields: ["TLDR", "Problem Statement", "Acceptance Criteria", "Priority Justification"]
+classification: internal
+compliance_frameworks: ["NIST CSF"]
+review_cycle: per-use
+author: Wakeem Williams
+version: 1.0
+---
+
 # TEMPLATE: Feature Request
 
 Use this template for new capabilities, integrations, or improvements.
 File in GitHub Issues with label `feature` before any design or implementation work begins.
 
----
+## TLDR [REQUIRED]
 
-## TLDR
+One sentence. What you want and why.
 
-<!-- One sentence. What you want and why. -->
-
-Example: Add CTGA score export to PDF so clients can share results with their leadership team.
+**Example**: Add CTGA score export to PDF so clients can share results with their leadership team.
 
 ---
 
-## Problem Statement
+## Problem Statement [REQUIRED]
 
-<!-- What gap or friction exists today? Who experiences it? How often?
-     Be specific. "Users are frustrated" is not a problem statement.
-     "Clients have no way to share their CTGA score without screenshotting the dashboard" is. -->
+What gap or friction exists today? Who experiences it? How often?
+Be specific. "Users are frustrated" is not a problem statement.
+"Clients have no way to share their CTGA score without screenshotting the dashboard" is.
 
-**Who is affected**: <!-- Role or persona, not a name -->
+**Who is affected**: [Role or persona, not a name]
 
-**Current behavior**: <!-- What happens today -->
+**Current behavior**: [What happens today]
 
-**Pain**: <!-- Why it matters. Cost, friction, missed opportunity -->
-
----
-
-## Proposed Solution
-
-<!-- Describe what you want built. Be concrete.
-     Include sketches, mockups, or workflow descriptions if helpful. -->
+**Pain**: [Why it matters. Cost, friction, missed opportunity]
 
 ---
 
-## Acceptance Criteria
+## Proposed Solution [OPTIONAL]
 
-<!-- How will we know this is done? Write testable conditions.
-     Format: "Given [context], when [action], then [outcome]." -->
-
-- [ ] Given ..., when ..., then ...
-- [ ] Given ..., when ..., then ...
-- [ ] Given ..., when ..., then ...
+Describe what you want built. Be concrete.
+Include sketches, mockups, or workflow descriptions if helpful.
 
 ---
 
-## Priority Justification
+## Acceptance Criteria [REQUIRED]
+
+How will we know this is done? Write testable conditions.
+Format: "Given [context], when [action], then [outcome]."
+
+- [ ] Given [context], when [action], then [outcome]
+- [ ] Given [context], when [action], then [outcome]
+- [ ] Given [context], when [action], then [outcome]
+
+---
+
+## Priority Justification [REQUIRED]
 
 Select one and explain briefly.
 
@@ -54,35 +66,52 @@ Select one and explain briefly.
 - [ ] **P3 — Medium**: Improves experience; schedule when capacity allows.
 - [ ] **P4 — Low**: Nice to have. No urgency.
 
-**Why this priority**:
+**Why this priority**: [Explanation tied to business impact]
 
 ---
 
-## Alternatives Considered
+## Alternatives Considered [REQUIRED]
 
-<!-- What else did you think about? Why did you reject the alternatives?
-     At least one alternative required. "None" is not acceptable. -->
+What else did you think about? Why did you reject the alternatives?
+At least one alternative required.
 
 | Alternative | Why Rejected |
 |-------------|-------------|
-| | |
-| | |
+| [Alternative 1] | [Reasoning] |
+| [Alternative 2] | [Reasoning] |
 
 ---
 
-## Dependencies
+## Dependencies [OPTIONAL]
 
-<!-- Other features, services, or external systems this depends on. -->
+Other features, services, or external systems this depends on.
 
 - [ ] None
-- [ ] Requires: _______________
+- [ ] Requires: [Specific feature or system]
 
 ---
 
-## Out of Scope
+## Out of Scope [OPTIONAL]
 
-<!-- Explicitly state what this feature does NOT include.
-     Prevents scope creep during implementation. -->
+Explicitly state what this feature does NOT include.
+Prevents scope creep during implementation.
+
+---
+
+## Compliance Mapping
+
+| Framework | Control ID | Requirement | How This Template Satisfies It |
+|-----------|-----------|-------------|-------------------------------|
+| NIST CSF | PL.B-2 | Capability planning — documented requirements and alternatives | Structured acceptance criteria and alternatives considered |
+
+## Definition of Done
+
+- [ ] All [REQUIRED] fields are filled
+- [ ] Acceptance criteria are testable and specific
+- [ ] At least one alternative was considered and documented
+- [ ] Priority is justified with business impact
+- [ ] Stakeholders have reviewed and approved
+- [ ] Ready for design/implementation backlog
 
 ---
 
@@ -92,5 +121,7 @@ Select one and explain briefly.
 |-------|-------|
 | **Author** | Wakeem Williams |
 | **Co-Author** | Quinn Mercer (Documentation Lead) |
-| **Date** | YYYY-MM-DD |
-| **Version** | 1.0 |
+| **Date** | 2026-03-22 |
+| **Last Reviewed** | 2026-03-22 |
+| **Classification** | Internal |
+| **Version** | 1.1 |

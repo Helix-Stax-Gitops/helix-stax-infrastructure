@@ -69,7 +69,7 @@
 | OpenBao | bao.helixstax.net | 8200 | 1h |
 | Postal UI | postal.helixstax.net | 5000 | 24h |
 | SSH Browser | ssh-vps.helixstax.net | 2222 | 1h |
-| Auth (reserved) | auth.helixstax.net | N/A (503) | N/A |
+| Auth (reserved) | auth.helixstax.net | Zitadel (OIDC/SAML IdP) | N/A |
 
 ### Public Services (NOT Tunneled)
 
@@ -653,11 +653,11 @@ A second tunnel will run on the K3s cluster for application workloads:
 
 This keeps VPS infrastructure services and K3s application services on separate tunnels with independent lifecycle management.
 
-### Authelia on auth.helixstax.net
+### Zitadel on auth.helixstax.net
 
-The `auth.helixstax.net` hostname is reserved (currently returns 503). Planned use:
+The `auth.helixstax.net` hostname is reserved for Zitadel. Planned use:
 
-- Authelia as a self-hosted authentication portal
+- Zitadel as a self-hosted OIDC/SAML identity provider
 - Provides 2FA, SSO, and fine-grained access control beyond what CF Access offers
 - Can serve as an additional auth layer for internal services
 

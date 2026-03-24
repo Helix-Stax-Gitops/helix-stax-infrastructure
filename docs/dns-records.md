@@ -1,3 +1,8 @@
+> **WARNING: This document describes the OLD pre-Cloudflare-Zero-Trust DNS architecture.**
+> Many entries reference Authentik, Netbird, and direct VPS A records that are no longer valid.
+> Current DNS is managed via Cloudflare with Zero Trust tunnels.
+> A full rewrite is needed once the K3s migration is complete.
+
 # DNS Records Reference
 
 ## helixstax.net (Private / Ops)

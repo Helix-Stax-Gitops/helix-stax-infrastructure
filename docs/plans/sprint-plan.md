@@ -51,7 +51,7 @@ Phase 0: Server Hardening
     v
 Phase 1: Foundation (Terraform + VPS Provisioning)
     |
-    +---> Phase 2: Management Services (Harbor, Authentik, Netbird, OpenBao, MinIO)
+    +---> Phase 2: Management Services (Harbor, Zitadel, Cloudflare Zero Trust, OpenBao, MinIO)
     |         |
     |         +---> Phase 3: Cluster Security (Cilium, PSA, ESO, Kyverno)
     |         |         |
@@ -98,7 +98,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 | Topic | Cass (Architect) | Kit (DevOps) | Ezra (Security) | Resolution |
 |-------|-----------------|--------------|-----------------|------------|
 | **Monitoring first vs. safety net first** | Phase 0 = external VPS | Phase 1 = monitoring | Phase 0 = credential rotation | **Phase 0 = hardening + creds. Phase 1 = Terraform + VPS. Monitoring in Phase 5 after cluster security.** Rationale: can't monitor securely without Cilium NetworkPolicies; hardening and VPS are prerequisites for everything. |
-| **Cilium migration timing** | Phase 3 (after workload architecture) | Defer until monitoring exists | Phase 1 priority | **Phase 3** -- after VPS + management services so Netbird is available as fallback access before disabling firewalld. |
+| **Cilium migration timing** | Phase 3 (after workload architecture) | Defer until monitoring exists | Phase 1 priority | **Phase 3** -- after VPS + management services so Cloudflare Zero Trust is available as fallback access before disabling firewalld. |
 | **CX32 memory budget** | 7.5GB tight but viable | 7.5GB with 500MB headroom | OpenBao adds memory pressure | **Proceed with CX32. Monitor. Upgrade to CX42 if OOM within 30 days.** |
 | **Harbor Trivy scanner** | Disable on VPS to save RAM | Not mentioned | Enable scan-on-push | **Disable Trivy on Harbor (save ~1GB). Scan in Devtron CI pipeline via Trivy CLI instead.** |
 
@@ -322,7 +322,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 
 ## Phase 2: Management Services
 
-> **Goal**: Deploy Harbor, Authentik, Netbird, OpenBao, Vaultwarden, and MinIO on the External VPS via Docker Compose, with shared PostgreSQL and Redis.
+> **Goal**: Deploy Harbor, Zitadel, Cloudflare Zero Trust, OpenBao, Vaultwarden, and MinIO on the External VPS via Docker Compose, with shared PostgreSQL and Redis.
 
 ### Prerequisites
 - Phase 1 complete (VPS provisioned with Docker)
@@ -331,7 +331,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 
 ### Specialist Team
 - **Kit** (DevOps Engineer) -- Docker Compose stack, service configuration
-- **Ezra** (Security Engineer) -- OpenBao setup, TLS configuration, Authentik OIDC
+- **Ezra** (Security Engineer) -- OpenBao setup, TLS configuration, Zitadel OIDC
 
 ### Tasks
 
@@ -341,7 +341,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
    - Enable WAL archiving for PITR: `wal_level=replica`, `archive_mode=on`
 
 2. **Deploy shared Redis 7**
-   - Logical databases: DB 0 (Harbor), DB 1 (Authentik)
+   - Logical databases: DB 0 (Harbor), DB 1 (Zitadel)
    - `maxmemory 512mb`, `maxmemory-policy allkeys-lru`
 
 3. **Deploy Harbor** (core + portal + registry -- NO Trivy scanner)
@@ -349,7 +349,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
    - Set up pull-through cache for Docker Hub (avoid rate limits)
    - TLS via nginx reverse proxy
 
-4. **Deploy Authentik** (server + worker)
+4. **Deploy Zitadel** (server + worker)
    - Configure OIDC providers for: Devtron, Grafana, Kubernetes API
    - Create admin user and initial groups (admin, developer, ci-cd)
    - Set up OIDC for K3s API server:
@@ -360,8 +360,8 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
      --kube-apiserver-arg="oidc-groups-claim=groups"
      ```
 
-5. **Deploy Netbird** (management + signal + coturn)
-   - Integrate with Authentik for SSO
+5. **Deploy Cloudflare Zero Trust** (management + signal + coturn)
+   - Integrate with Zitadel for SSO
    - Create peer groups: admin, cluster-nodes
    - Configure routes for cluster network (10.0.0.0/16)
 
@@ -383,13 +383,13 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 9. **Deploy nginx reverse proxy**
    - TLS termination via Let's Encrypt (certbot)
    - Route: harbor.internal.helixstax.com -> Harbor
-   - Route: auth.helixstax.com -> Authentik
-   - Route: vpn.helixstax.com -> Netbird
+   - Route: auth.helixstax.com -> Zitadel
+   - Route: vpn.helixstax.com -> Cloudflare Zero Trust
    - Route: vault.internal.helixstax.com -> OpenBao
 
 10. **Lock down VPS access**
-    - After Netbird is running, restrict SSH to Netbird overlay only
-    - Close port 22 on Hetzner firewall, access via Netbird peer IP
+    - After Cloudflare Zero Trust is running, restrict SSH to Cloudflare Zero Trust overlay only
+    - Close port 22 on Hetzner firewall, access via Cloudflare Zero Trust peer IP
     - Keep one break-glass rule: SSH from a specific backup IP
 
 11. **Configure VPS backups**
@@ -399,36 +399,36 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 ### Acceptance Criteria
 - [ ] All 7 services running (`docker compose ps` shows healthy)
 - [ ] Harbor accessible at harbor.internal.helixstax.com with TLS
-- [ ] Authentik login page at auth.helixstax.com
-- [ ] Netbird VPN connection from admin machine to cluster nodes
+- [ ] Zitadel login page at auth.helixstax.com
+- [ ] Cloudflare Zero Trust VPN connection from admin machine to cluster nodes
 - [ ] OpenBao initialized and unsealed, secret engine operational
 - [ ] MinIO buckets created, S3 API reachable from cluster
 - [ ] VPS memory usage < 7.5GB (`free -h`)
 - [ ] VPS PostgreSQL serving all 3 databases
-- [ ] SSH only via Netbird (public SSH port closed)
+- [ ] SSH only via Cloudflare Zero Trust (public SSH port closed)
 - [ ] pg_dump cron running daily
 
 ### Handoff to Phase 3
 - Harbor registry URL and pull secret for K3s
-- Authentik OIDC endpoint URLs and client credentials
-- Netbird peer configuration for cluster nodes
+- Zitadel OIDC endpoint URLs and client credentials
+- Cloudflare Zero Trust peer configuration for cluster nodes
 - OpenBao address and Kubernetes auth mount path
 - MinIO endpoint and access credentials (for Velero + CloudNativePG)
 
 ### Tutorial Content Deliverables
-- **Article**: "Building a Management VPS: Harbor, Authentik, and Zero-Trust VPN on a $8/month Server"
+- **Article**: "Building a Management VPS: Harbor, Zitadel, and Zero-Trust VPN on a $8/month Server"
 - **Video**: "The External VPS Pattern -- Why Your Auth and Registry Should Live Outside Kubernetes"
-- **Screenshots/recordings needed**: Docker Compose stack overview, Harbor UI, Authentik OIDC flow, Netbird peer connection, memory usage dashboard
+- **Screenshots/recordings needed**: Docker Compose stack overview, Harbor UI, Zitadel OIDC flow, Cloudflare Zero Trust peer connection, memory usage dashboard
 
 ### Estimated Effort
 4-5 sessions
 
 ### Risks and Gotchas
 - **Memory pressure**: 7.5GB budget on 8GB VPS is tight. Monitor with `docker stats`. If OOM, upgrade to CX42 (16GB, ~$16/mo)
-- **Circular dependency**: Authentik needs DNS, DNS needs Cloudflare, Cloudflare needs Terraform. Break the loop by using direct IP access initially, then switch to DNS once records propagate
+- **Circular dependency**: Zitadel needs DNS, DNS needs Cloudflare, Cloudflare needs Terraform. Break the loop by using direct IP access initially, then switch to DNS once records propagate
 - **OpenBao unseal**: Hetzner has no KMS. Auto-unseal not available. After every VPS reboot, you must manually unseal. Document the procedure. Consider a systemd timer that prompts via Telegram
 - **Harbor without Trivy**: Images pushed to Harbor will NOT be scanned. Scanning moves to CI pipeline (Phase 9). This is a deliberate trade-off for VPS memory
-- **Netbird + Authentik ordering**: Deploy Authentik first, then Netbird (Netbird depends on Authentik for SSO). If both go down simultaneously on VPS reboot, Authentik must come up first
+- **Cloudflare Zero Trust + Zitadel ordering**: Deploy Zitadel first, then Cloudflare Zero Trust (Cloudflare Zero Trust depends on Zitadel for SSO). If both go down simultaneously on VPS reboot, Zitadel must come up first
 
 ---
 
@@ -437,7 +437,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 > **Goal**: Migrate CNI from Flannel to Cilium, enforce Pod Security Admission, deploy External Secrets Operator connected to OpenBao, and establish namespace architecture with default-deny NetworkPolicies.
 
 ### Prerequisites
-- Phase 2 complete (Netbird running for fallback access, OpenBao running for secrets)
+- Phase 2 complete (Cloudflare Zero Trust running for fallback access, OpenBao running for secrets)
 - Hetzner Cloud Firewall covering all perimeter rules (confirmed in Phase 0)
 - Maintenance window planned (Cilium migration requires brief cluster downtime)
 
@@ -559,7 +559,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
     - `admin` ClusterRole: full access (break-glass, stored in OpenBao)
     - `developer` Role: namespace-scoped, no secrets, no node ops
     - `ci-cd` Role: deploy to specific namespaces only (Devtron ServiceAccount)
-    - Integrate with Authentik OIDC for human access
+    - Integrate with Zitadel OIDC for human access
 
 12. **Deploy Cosign + Kyverno** (image signing and admission)
     ```bash
@@ -822,8 +822,8 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 
 10. **Expose Grafana** via Traefik IngressRoute
     - Route: grafana.internal.helixstax.com
-    - Protect with Authentik forward-auth (SSO login)
-    - Also accessible directly via Netbird VPN
+    - Protect with Zitadel forward-auth (SSO login)
+    - Also accessible directly via Cloudflare Zero Trust VPN
 
 11. **Establish resource baselines**
     - Record idle CPU/memory per namespace for 48h
@@ -832,7 +832,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 ### Acceptance Criteria
 - [ ] Prometheus scraping all targets (check Targets page in Grafana)
 - [ ] Loki receiving logs from all pods (`logcli query '{namespace="kube-system"}'`)
-- [ ] Grafana accessible at grafana.internal.helixstax.com behind Authentik SSO
+- [ ] Grafana accessible at grafana.internal.helixstax.com behind Zitadel SSO
 - [ ] All 8 critical alerts configured and tested (fire a test alert to Telegram)
 - [ ] Audit logs visible in Grafana Loki dashboard
 - [ ] Tetragon running, baseline policies active
@@ -858,7 +858,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 - **Loki storage**: 10Gi PV on local-path. Monitor usage -- 7-day retention with moderate log volume should fit, but verbose apps can fill it fast. Set `loki.config.limits_config.ingestion_rate_mb` to prevent burst
 - **Telegram bot**: Must rotate token BEFORE configuring Grafana alerts. Current token returns 401
 - **Tetragon + Cilium**: Both use eBPF. On a single worker node, eBPF map limits could be reached. Monitor `bpftool prog show` for map count. Unlikely at this scale but worth watching
-- **Grafana behind Authentik**: If Authentik (on VPS) goes down, Grafana becomes inaccessible via SSO. Ensure Grafana has a local admin fallback account
+- **Grafana behind Zitadel**: If Zitadel (on VPS) goes down, Grafana becomes inaccessible via SSO. Ensure Grafana has a local admin fallback account
 
 ---
 
@@ -934,7 +934,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
      --set resources.requests.memory=256Mi \
      --set resources.limits.memory=1Gi
    ```
-   - Configure Langfuse to use Authentik SSO
+   - Configure Langfuse to use Zitadel SSO
 
 5. **Configure rolling update strategy** (all deployments)
    ```yaml
@@ -954,8 +954,8 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
    | Langfuse | 0 |
 
 7. **Expose services via Traefik IngressRoutes**
-   - n8n.internal.helixstax.com (behind Authentik forward-auth)
-   - langfuse.internal.helixstax.com (behind Authentik forward-auth)
+   - n8n.internal.helixstax.com (behind Zitadel forward-auth)
+   - langfuse.internal.helixstax.com (behind Zitadel forward-auth)
    - Ollama: internal only (no ingress, accessed via cluster DNS from n8n)
 
 8. **Connect n8n to Ollama** for AI workflows
@@ -1037,7 +1037,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
    - Create wildcard cert for *.helixstax.com
 
 3. **Configure Traefik dynamic routing**
-   - Middleware for Authentik forward-auth (internal services)
+   - Middleware for Zitadel forward-auth (internal services)
    - Dynamic IngressRoute generation for client subdomains
    - Default backend for `*.helixstax.com` showing "Coming Soon" page
 
@@ -1047,7 +1047,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
    - Error handling: rollback partial changes on failure
 
 5. **Scaffold React client portal**
-   - Authentication via Authentik OIDC
+   - Authentication via Zitadel OIDC
    - Client dashboard: project status, reports, invoices
    - Admin dashboard: client management, domain management
    - React Flow for workflow visualization (future)
@@ -1081,7 +1081,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 - [ ] cert-manager issuing Let's Encrypt certificates
 - [ ] Traefik dynamic routing serving different content per subdomain
 - [ ] Client onboarding n8n workflow executing end-to-end
-- [ ] Client portal scaffold deployed and accessible behind Authentik
+- [ ] Client portal scaffold deployed and accessible behind Zitadel
 - [ ] Per-client ResourceQuotas template ready
 - [ ] Starter tier: `test.helixstax.com` resolves and serves content
 
@@ -1179,8 +1179,8 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
    - Verify data restored
 
 8. **Document break-glass procedures**
-   - If Authentik down: direct SSH + kubeconfig
-   - If Netbird down: direct SSH via backup IP firewall rule
+   - If Zitadel down: direct SSH + kubeconfig
+   - If Cloudflare Zero Trust down: direct SSH via backup IP firewall rule
    - If VPS down: cluster continues, rebuild from Terraform + restore MinIO from B2
    - If cluster unrecoverable: Velero restore from MinIO (or B2) to fresh Terraform nodes
    - Store break-glass credentials: Vaultwarden + offline USB drive
@@ -1229,7 +1229,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 > **Goal**: Complete the Devtron pipeline: GitHub webhooks, Harbor push, image scanning in CI, environment promotion, and end-to-end deployment testing.
 
 ### Prerequisites
-- Phase 2 complete (Harbor running, Authentik OIDC configured)
+- Phase 2 complete (Harbor running, Zitadel OIDC configured)
 - Phase 3 complete (Kyverno admission control, Cosign signing)
 - Phase 5 complete (monitoring for pipeline observability)
 
@@ -1269,9 +1269,9 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
    - Trigger on: push to main, PR opened, PR merged
    - Expose Devtron webhook endpoint behind Traefik IngressRoute (authenticated)
 
-7. **Move Devtron dashboard behind Traefik + Authentik**
+7. **Move Devtron dashboard behind Traefik + Zitadel**
    - Create IngressRoute for devtron.internal.helixstax.com
-   - Configure Authentik forward-auth middleware
+   - Configure Zitadel forward-auth middleware
    - Remove NodePort 31656 exposure (close firewall rule)
 
 8. **End-to-end pipeline test**
@@ -1295,7 +1295,7 @@ Phase 1: Foundation (Terraform + VPS Provisioning)
 - [ ] Trivy blocking images with High/Critical CVEs
 - [ ] Cosign signing all images, Kyverno rejecting unsigned
 - [ ] ArgoCD deploying from Harbor to cluster
-- [ ] Devtron dashboard accessible only via Traefik + Authentik (NodePort closed)
+- [ ] Devtron dashboard accessible only via Traefik + Zitadel (NodePort closed)
 - [ ] End-to-end test: code push -> running pod in cluster
 - [ ] Pipeline notifications to Telegram working
 - [ ] Harbor pull-through cache serving Docker Hub images

@@ -1,3 +1,8 @@
+> **DECISION (2026-03-21): SOPS was evaluated but NOT adopted for the CI/CD pipeline.**
+> ESO (External Secrets Operator) + OpenBao handles all K8s secret management.
+> SOPS is only used for non-K8s secrets (e.g., OpenTofu state variables) if needed.
+> This research is retained for reference.
+
 # SOPS Research: GitOps Secret Encryption for Helix Stax
 
 **Date**: 2026-03-20

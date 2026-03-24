@@ -1,9 +1,21 @@
+---
+template: incident-report
+category: operational
+task_type: incident
+clickup_list: "04 Service Management"
+auto_tags: ["incident", "operations", "post-mortem"]
+required_fields: ["TLDR", "Detection", "Severity", "Affected Services", "Timeline", "Root Cause", "Action Items"]
+classification: internal
+compliance_frameworks: ["SOC 2", "NIST CSF", "ISO 27001"]
+review_cycle: per-use
+author: Wakeem Williams
+version: 1.0
+---
+
 # TEMPLATE: Incident Report
 
 Complete this report within 24 hours of incident resolution.
 Store in `docs/runbooks/incidents/YYYY-MM-DD-{slug}.md`.
-
----
 
 ## TLDR
 
@@ -21,7 +33,7 @@ Example: Traefik ingress lost TLS cert renewal on 2026-03-15 at 02:14 UTC; cert-
 
 **Detection method**:
 - [ ] Grafana / Loki alert
-- [ ] Telegram notification
+- [ ] Rocket.Chat notification
 - [ ] User complaint
 - [ ] Manual check
 - [ ] Other: _______________
@@ -135,12 +147,33 @@ Example: Traefik ingress lost TLS cert renewal on 2026-03-15 at 02:14 UTC; cert-
 
 ---
 
-## Lessons Learned
+## Lessons Learned [REQUIRED]
 
-<!-- What did this incident teach you? Write things future-you needs to know. -->
+What did this incident teach you? Write things future-you needs to know.
 
--
--
+- [Lesson learned]
+- [Lesson learned]
+
+---
+
+## Compliance Mapping
+
+| Framework | Control ID | Requirement | How This Template Satisfies It |
+|-----------|-----------|-------------|-------------------------------|
+| SOC 2 | CC7.4 | Security incident management — documented incident response and lessons learned | Timeline captures detection to resolution; action items drive improvements |
+| SOC 2 | CC7.5 | Monitoring and maintenance of protection systems | Incidents feed improvement roadmap and control enhancements |
+| NIST CSF | RC.IM-1 | Incident handling coordination and execution | Structured incident report with root cause, actions, and timeline |
+| ISO 27001 | A.16.1.5 | Response to information security incidents — documented root cause and improvement | Action items drive preventive controls |
+
+## Definition of Done
+
+- [ ] All [REQUIRED] fields are filled
+- [ ] Timeline is in UTC with exact timestamps
+- [ ] Root cause is specific (not vague — "pod crashed" vs "pod OOM-killed due to memory leak in X version")
+- [ ] Action items are assigned with owners and due dates
+- [ ] Lessons learned documented
+- [ ] Report reviewed by incident lead and technical stakeholders
+- [ ] Action items tracked in ClickUp with dependencies
 
 ---
 
@@ -150,5 +183,7 @@ Example: Traefik ingress lost TLS cert renewal on 2026-03-15 at 02:14 UTC; cert-
 |-------|-------|
 | **Author** | Wakeem Williams |
 | **Co-Author** | Quinn Mercer (Documentation Lead) |
-| **Date** | YYYY-MM-DD |
-| **Version** | 1.0 |
+| **Date** | 2026-03-22 |
+| **Last Reviewed** | 2026-03-22 |
+| **Classification** | Internal |
+| **Version** | 1.1 |

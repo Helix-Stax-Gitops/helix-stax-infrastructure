@@ -492,7 +492,7 @@ Data is partitioned across multiple storage nodes based on a shard key (e.g., us
 - Prometheus scrapes all services via ServiceMonitor CRDs (kube-prometheus-stack)
 - All services must expose `/metrics` endpoint in Prometheus format
 - Alert rules defined in PrometheusRule CRDs, managed as Helm chart values
-- Grafana for dashboards. Alertmanager routes to PagerDuty or Telegram for on-call
+- Grafana for dashboards. Alertmanager routes to PagerDuty or Rocket.Chat for on-call
 
 **Design decision**: Use the Grafana stack (Loki + Tempo + Grafana + Prometheus) for unified observability rather than mixing tools (e.g., Datadog + Jaeger + ELK). Single UI, single installation, single license model. The `kube-prometheus-stack` Helm chart is the canonical deployment for the metrics layer.
 

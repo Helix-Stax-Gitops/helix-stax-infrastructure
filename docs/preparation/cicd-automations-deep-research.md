@@ -1,5 +1,7 @@
 # CI/CD Event Automations -- Deep Research
 
+> **NOTE (2026-03-21): "ArgoCD" in this document refers to Devtron's internal ArgoCD, NOT a standalone ArgoCD installation. Devtron bundles ArgoCD and manages it as part of its CI/CD platform.**
+
 > **Author**: Remy Alcazar, Research Analyst
 > **Date**: 2026-03-20
 > **Stack**: Devtron (CI) -> Harbor (registry + Trivy) -> ArgoCD (GitOps deploy) -> K3s

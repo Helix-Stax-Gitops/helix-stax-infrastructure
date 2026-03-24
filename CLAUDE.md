@@ -172,7 +172,7 @@ FedRAMP, StateRAMP, CJIS, ITAR
 - OS: AlmaLinux 9.7
 - No secrets in git — OpenBao only
 - All Helm values in `helm/` directory
-- All OpenTofu modules in `terraform/` (migrating to `opentofu/`)
+- All OpenTofu modules in `opentofu/`
 - Runbooks in `docs/runbooks/`
 - ADRs in `docs/adr/`
 - Phase tutorials in `docs/tutorials/`

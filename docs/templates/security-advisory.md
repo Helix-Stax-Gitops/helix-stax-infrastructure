@@ -1,10 +1,22 @@
+---
+template: security-advisory
+category: security
+task_type: security-finding
+clickup_list: "03 Security Operations"
+auto_tags: ["security", "vulnerability", "cve"]
+required_fields: ["TLDR", "CVE / ID", "Affected Systems", "Severity", "Remediation Steps"]
+classification: confidential
+compliance_frameworks: ["SOC 2", "NIST CSF", "ISO 27001", "NIST SP 800-53"]
+review_cycle: per-use
+author: Wakeem Williams
+version: 1.0
+---
+
 # TEMPLATE: Security Advisory
 
 Use this template for CVEs, vulnerability disclosures, or internal security findings.
 Store in `docs/runbooks/security/YYYY-MM-DD-{slug}.md`.
 Treat all security advisories as confidential until remediated.
-
----
 
 ## TLDR
 
@@ -130,9 +142,37 @@ Example: Traefik v2.10.4 is vulnerable to CVE-2024-45410 (request smuggling, CVS
 
 ---
 
-## Related
+## Related [OPTIONAL]
 
-<!-- Links to related ADRs, runbooks, or incidents. -->
+Links to related ADRs, runbooks, or incidents.
+
+- [Link to related resource]
+- [Link to related resource]
+
+---
+
+## Compliance Mapping
+
+| Framework | Control ID | Requirement | How This Template Satisfies It |
+|-----------|-----------|-------------|-------------------------------|
+| SOC 2 | CC6.1 | Vulnerability management — documented vulnerabilities and remediation | Advisory captures affected versions, CVSS, remediation, and verification steps |
+| SOC 2 | CC7.2 | Security incident response — documented vulnerability responses | Disclosure timeline tracks discovery to patch deployment |
+| NIST SP 800-53 | SI-2 | Security flaw remediation — documented vulnerabilities and fixes | Remediation steps and rollback procedures documented |
+| NIST CSF | ID.RA-2 | Risk assessment — documented threat information | CVSS score and exploitability assess risk level |
+| ISO 27001 | A.12.6.1 | Management of technical vulnerabilities — documented issues and remediation | Tracks affected systems and patching timeline |
+
+## Definition of Done
+
+- [ ] All [REQUIRED] fields are filled
+- [ ] CVE ID or internal ID assigned
+- [ ] CVSS score obtained from NVD or vendor
+- [ ] Affected systems and versions documented
+- [ ] Remediation steps tested and verified
+- [ ] Disclosure timeline is complete and accurate
+- [ ] Risk accepted (if not patched) has explicit sign-off
+- [ ] Advisory marked confidential and access restricted
+- [ ] Action items created in ClickUp with patch deadlines
+- [ ] Follow-up verification scheduled
 
 ---
 
@@ -142,5 +182,7 @@ Example: Traefik v2.10.4 is vulnerable to CVE-2024-45410 (request smuggling, CVS
 |-------|-------|
 | **Author** | Wakeem Williams |
 | **Co-Author** | Quinn Mercer (Documentation Lead) |
-| **Date** | YYYY-MM-DD |
-| **Version** | 1.0 |
+| **Date** | 2026-03-22 |
+| **Last Reviewed** | 2026-03-22 |
+| **Classification** | Confidential |
+| **Version** | 1.1 |

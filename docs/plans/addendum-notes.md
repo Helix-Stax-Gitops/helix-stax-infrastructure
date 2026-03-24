@@ -103,15 +103,15 @@ For Phase 0-1 (before OpenBao exists): store credentials temporarily in a local 
 
 ---
 
-## Google SAML SSO via Authentik (Phase 2)
+## Google SAML SSO via Zitadel (Phase 2)
 
-Authentik must be configured as a SAML/OIDC broker with Google Workspace:
+Zitadel must be configured as a SAML/OIDC broker with Google Workspace:
 - Google Workspace is the identity source (@helixstax.com accounts)
-- Authentik federates Google identity to all internal services
+- Zitadel federates Google identity to all internal services
 - Services that get SSO: Grafana, Devtron, n8n, client portal, Harbor
 - Client portal: clients can also "Sign in with Google" (their own Google accounts)
-- RBAC: Authentik maps Google groups/email domains to roles (admin, client, viewer)
-- Setup: Authentik admin → Providers → SAML → Google Workspace integration
+- RBAC: Zitadel maps Google groups/email domains to roles (admin, client, viewer)
+- Setup: Zitadel admin → Providers → SAML → Google Workspace integration
 
 ---
 

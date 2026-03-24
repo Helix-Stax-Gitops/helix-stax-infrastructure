@@ -38,8 +38,8 @@ K3s is a lightweight version of Kubernetes (K8s). Same technology, same capabili
 | Edge CDN & DDoS | [[Cloudflare]] for Platforms | Caches content globally, blocks attacks, manages SSL for all client domains automatically |
 | Ingress routing | [[Traefik]] | Receives traffic from Cloudflare and routes it to the correct app/site inside the cluster |
 | Network isolation | [[Cilium]] | Controls which containers can talk to each other. Default-deny — nothing communicates unless explicitly allowed |
-| Zero-trust VPN | [[Netbird]] | Private encrypted tunnel for admin access. No open ports on servers |
-| Identity & SSO | [[Authentik]] | Single sign-on for all dashboards. External to the cluster so you can always log in even if the cluster is down |
+| Zero-trust VPN | [[Cloudflare Zero Trust]] | Private encrypted tunnel for admin access. No open ports on servers |
+| Identity & SSO | [[Zitadel]] | Single sign-on for all dashboards. External to the cluster so you can always log in even if the cluster is down |
 | TLS certificates | cert-manager + Let's Encrypt | Automatic HTTPS for internal services |
 
 ---
@@ -61,7 +61,7 @@ CloudNativePG is a Kubernetes operator that automatically manages PostgreSQL. In
 
 ### External VPS Databases
 
-A separate small PostgreSQL + Redis on the external VPS serves management tools ([[Harbor]], [[Authentik]], [[Netbird]]). These stay outside the cluster so they're available even during cluster outages.
+A separate small PostgreSQL + Valkey on the external VPS serves management tools ([[Harbor]], [[Zitadel]], [[Cloudflare Zero Trust]]). These stay outside the cluster so they're available even during cluster outages.
 
 ---
 
@@ -86,7 +86,7 @@ A separate small PostgreSQL + Redis on the external VPS serves management tools 
 | Custom domain | `clientdomain.com` — [[Cloudflare]] for Platforms handles SSL automatically |
 | Onboarding | [[n8n]] workflow: add domain to Cloudflare -> create Traefik route -> create database record -> site appears in client portal |
 | Isolation | Each client gets resource limits (ResourceQuotas) so one site can't crash another |
-| Client portal | React app behind [[Authentik]] auth — clients see reports, project status, invoices |
+| Client portal | React app behind [[Zitadel]] auth — clients see reports, project status, invoices |
 
 ---
 
@@ -112,7 +112,7 @@ A separate small PostgreSQL + Redis on the external VPS serves management tools 
 | Logs | [[Loki]] | ~1.5GB | Centralized log storage. Search across all containers |
 | Runtime security | Tetragon | ~300MB | Monitors container behavior for suspicious activity |
 
-> Access Grafana at `grafana.internal.helixstax.com` via Netbird VPN, or expose dashboards through the client portal.
+> Access Grafana at `grafana.internal.helixstax.com` via Cloudflare Zero Trust, or expose dashboards through the client portal.
 
 ---
 
@@ -159,8 +159,8 @@ A separate small PostgreSQL + Redis on the external VPS serves management tools 
 | Neo4j | AGE extension covers graph queries |
 | ClickHouse | pg_analytics covers analytics |
 | Longhorn | No benefit with one worker node. Deferred |
-| Istio/Linkerd (service mesh) | [[Cilium]] + [[Netbird]] sufficient |
-| Ansible | Terraform + GitOps handles everything |
+| Istio/Linkerd (service mesh) | [[Cilium]] + [[Cloudflare Zero Trust]] sufficient |
+| Ansible | OpenTofu + GitOps handles everything |
 | Talos OS | Deferred until 3+ nodes |
 
 ---
@@ -203,10 +203,10 @@ Cloudflare (CDN + DDoS + SSL)
 |  External VPS (8GB)          K3s Cluster                  |
 |  +----------------+         +---------------------------+ |
 |  | PostgreSQL     |         | heart (Control Plane)     | |
-|  | Redis          |         |   K3s API server          | |
+|  | Valkey         |         |   K3s API server          | |
 |  | Harbor         |         |   Scheduler               | |
-|  | Authentik      |         +---------------------------+ |
-|  | Netbird        |                   |                   |
+|  | Zitadel        |         +---------------------------+ |
+|  | (Zero Trust)   |                   |                   |
 |  | MinIO          |         +---------------------------+ |
 |  | OpenBao        |         | helix-worker-1 (64GB)     | |
 |  | Vaultwarden    |         |   CloudNativePG           | |
@@ -230,10 +230,9 @@ Backblaze B2 (offsite backups)
 | Service | RAM |
 |---------|-----|
 | Shared PostgreSQL | 1.5GB |
-| Shared Redis | 512MB |
+| Shared Valkey | 512MB |
 | Harbor | 1.5GB |
-| Authentik | 1.5GB |
-| Netbird | 512MB |
+| Zitadel | 1.5GB |
 | MinIO | 512MB |
 | OpenBao | 512MB |
 | Vaultwarden | 256MB |

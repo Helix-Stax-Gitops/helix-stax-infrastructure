@@ -24,7 +24,7 @@ These tools are installed on the local Windows workstation and used to manage th
 |------|---------|--------------------------|----------------|---------------|
 | **kubectl** | Kubernetes cluster management, pod inspection, log tailing | `winget install Kubernetes.kubectl` | v1.34.x (match K3s) | All phases |
 | **helm** | Kubernetes package manager — installs charts into K3s | `winget install Helm.Helm` | v3.16+ | Phase 3–9 |
-| **terraform** | Infrastructure as Code — codifies Hetzner + Cloudflare resources | `winget install Hashicorp.Terraform` | v1.10+ | Phase 1 |
+| **opentofu** | Infrastructure as Code — codifies Hetzner + Cloudflare resources | `winget install OpenTofu.OpenTofu` | v1.10+ | Phase 1 |
 | **hcloud** | Hetzner Cloud CLI — server provisioning, firewall rules, snapshots | `winget install hetznercloud.cli` | v1.48+ | Phase 1–2 |
 | **docker** | Local container testing, image builds | Docker Desktop or `winget install Docker.DockerDesktop` | v27+ | Phase 2, 9 |
 | **gh** | GitHub CLI — repo management, PATs, webhooks, PR creation | `winget install GitHub.cli` | v2.60+ | Phase 1, 9 |
@@ -198,7 +198,7 @@ Skills available in `~/.claude/skills/` that are relevant to infrastructure work
 |-------|---------|---------------|
 | **k8s-ops** | Kubernetes operations — workloads, networking, storage, Helm charts, GitOps | All cluster phases (3–9) |
 | **k8s-troubleshooter** | Diagnose K8s issues — pods, Helm, networking, performance | All cluster phases |
-| **terraform-configuration** | Terraform module patterns, state management, provider config | Phase 1 |
+| **terraform-configuration** | OpenTofu module patterns, state management, provider config | Phase 1 |
 | **docker-docs** | Dockerfile best practices, Compose patterns | Phase 2 (VPS services) |
 | **secrets-management** | Vault/OpenBao patterns, secret rotation, ESO integration | Phase 2–3 |
 | **observability** | Prometheus, Grafana, Loki, alerting, SLO/SLA design, runbook templates | Phase 5 |
@@ -326,7 +326,7 @@ Everything below must be verified/installed **BEFORE Phase 0 begins** (wipe + ha
 
 - [ ] `kubectl` installed and in PATH — `kubectl version --client`
 - [ ] `helm` installed and in PATH — `helm version`
-- [ ] `terraform` installed and in PATH — `terraform version`
+- [ ] `opentofu` installed and in PATH — `tofu version`
 - [ ] `hcloud` installed and in PATH — `hcloud version`
 - [ ] `gh` (GitHub CLI) installed and authenticated — `gh auth status`
 - [ ] `docker` installed and running — `docker info`

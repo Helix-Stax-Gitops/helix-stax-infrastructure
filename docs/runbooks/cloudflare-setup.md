@@ -35,7 +35,7 @@ Both domains live under the same Cloudflare account.
 | **DDoS / WAF / Cache** | Not active | Active |
 | **Use when** | Internal services, VPN endpoints, anything that needs direct TCP/UDP | Public websites, anything benefiting from CDN or DDoS protection |
 
-**Rule of thumb**: If users reach the service over Netbird or you need non-HTTP protocols, use grey cloud. If it is internet-facing for the public, use orange cloud.
+**Rule of thumb**: If users reach the service over the Cloudflare Zero Trust tunnel or you need non-HTTP protocols, use grey cloud. If it is internet-facing for the public, use orange cloud.
 
 ---
 

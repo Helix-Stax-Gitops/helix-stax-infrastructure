@@ -57,7 +57,7 @@ helix-stax-infrastructure/
 │   └── tutorials/
 │       ├── _index.md              # Tutorial series overview
 │       └── phase-00-hardening/    # Step-by-step server hardening
-├── terraform/                     # Infrastructure as Code (Phase 1)
+├── opentofu/                      # Infrastructure as Code (Phase 1)
 ├── helm/                          # Helm value overrides (Phase 3+)
 ├── CHANGELOG.md
 └── README.md
