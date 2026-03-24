@@ -1,0 +1,18 @@
+# OpenTofu / Terraform state and secrets — never commit these
+terraform.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/
+tfplan
+*.tfplan
+.terraform.lock.hcl
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Override files (local dev only)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

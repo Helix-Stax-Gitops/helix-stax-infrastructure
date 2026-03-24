@@ -1,0 +1,29 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars and fill in non-secret values.
+# terraform.tfvars is gitignored — never commit it.
+#
+# Sensitive variables are NOT set here — they are injected by
+# scripts/tofu-apply.sh via TF_VAR_* fetched from Cloudflare vault:
+#   TF_VAR_hcloud_token
+#   TF_VAR_cloudflare_api_token
+#   TF_VAR_cloudflare_zone_id_com
+#   TF_VAR_cloudflare_zone_id_net
+#   TF_VAR_ssh_public_key
+
+# ---- SSH & Access -------------------------------------------
+ssh_key_ids = [111111111, 222222222]   # Hetzner SSH key IDs (from Hetzner console)
+# SSH starts on port 22 — Ansible changes it to 2222 during hardening
+
+# ---- CP Server (helix-stax-cp) ------------------------------
+cp_server_type = "cpx31"              # 4 vCPU / 8 GB RAM — minimum for K3s + workloads
+cp_image       = "alma-9"
+cp_location    = "ash"                # ash | nbg1 | fsn1 | hel1 | hil
+
+# ---- VPS Server (helix-stax-vps) ----------------------------
+vps_server_type = "cpx31"            # cpx31 recommended for full stack
+vps_image       = "alma-9"
+vps_location    = "hil"              # may differ from cp_location if cpx31 unavailable in ash
+
+# ---- Test Server (helix-stax-test) --------------------------
+# test_server_type = "cpx11"         # defaults defined in variables.tf
+# test_location    = "ash"
