@@ -10,7 +10,7 @@ These two tools form the communication stack at Helix Stax:
 - **Postal**: Self-hosted transactional email server. All system-generated email — monitoring alerts from Alertmanager, user notifications from Grafana, account emails from Zitadel, form submissions from the website, workflow emails from n8n, and account invitations from Outline and Backstage — routes through Postal. Google Workspace handles business email (team@helixstax.com). Postal handles everything programmatic.
 
 ## Our Specific Setup
-- **Cluster**: K3s on AlmaLinux 9.7, Hetzner Cloud (heart: 178.156.233.12 CP, helix-worker-1: 138.201.131.157 worker)
+- **Cluster**: K3s on AlmaLinux 9.7, Hetzner Cloud (helix-stax-cp: 178.156.233.12 cpx31 ash-dc1 control plane; helix-stax-vps: 5.78.145.30 cpx31 hil-dc1 role TBD)
 - **Identity**: Zitadel as OIDC provider for SSO (primary login method for both)
 - **Rocket.Chat domain**: chat.helixstax.net via Traefik IngressRoute
 - **Postal domain**: mail.helixstax.net (Postal UI), sending domains: helixstax.com and helixstax.net
@@ -182,7 +182,7 @@ These two tools form the communication stack at Helix Stax:
 
 #### B3. DNS Setup in Cloudflare
 - MX records: should Postal have MX records for helixstax.com and helixstax.net? (Only if receiving inbound — clarify for transactional-only setup)
-- SPF records: `TXT` record at domain root — correct SPF syntax for Postal sending via Hetzner IP (`v=spf1 ip4:178.156.233.12 ip4:138.201.131.157 include:_spf.google.com ~all`)
+- SPF records: `TXT` record at domain root — correct SPF syntax for Postal sending via Hetzner IP (`v=spf1 ip4:178.156.233.12 ip4:5.78.145.30 include:_spf.google.com ~all`)
 - DKIM: how Postal generates DKIM keys, where to get the public key for DNS, `TXT` record format (`postal._domainkey.helixstax.com`)
 - DMARC: `TXT` record at `_dmarc.helixstax.com` — recommended policy for transactional sending (`p=quarantine` vs `p=reject`), `rua` report address
 - Return-Path domain: `_returnpath.helixstax.com` CNAME for bounce tracking
@@ -245,7 +245,7 @@ These two tools form the communication stack at Helix Stax:
 
 #### B9. Google Workspace Coexistence
 - Sending domain separation: Google Workspace owns `@helixstax.com` MX for business email; Postal sends FROM `@helixstax.com` but does NOT receive inbound
-- SPF merging: single SPF record at `helixstax.com` must include both Google and Postal sending IPs — `v=spf1 include:_spf.google.com ip4:178.156.233.12 ~all` (max 10 DNS lookups)
+- SPF merging: single SPF record at `helixstax.com` must include both Google and Postal sending IPs — `v=spf1 include:_spf.google.com ip4:178.156.233.12 ip4:5.78.145.30 ~all` (max 10 DNS lookups)
 - DKIM coexistence: Google uses `google._domainkey.helixstax.com`; Postal uses `postal._domainkey.helixstax.com` — different selectors, no conflict
 - DMARC with dual senders: both Google and Postal must pass SPF or DKIM for DMARC to not reject — alignment requirements
 - When to use each: business email (human-to-human) -> Google Workspace; transactional (system-generated) -> Postal
@@ -270,9 +270,59 @@ These two tools form the communication stack at Helix Stax:
 
 ---
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
+---
+
 ## Required Output Format
 
-Structure your response with these EXACT top-level headers (using `#`) so it can be split into two separate skill files. Each section must be self-contained — do not assume the reader has read the other section.
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
+
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
+
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
+
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (helix-stax-cp: 178.156.233.12, helix-stax-vps: 5.78.145.30), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
+
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
+
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.
 
 ```markdown
 # Rocket.Chat

@@ -4,20 +4,20 @@
 I run Helix Stax, a small IT consulting company. I use AI coding agents (Claude Code + Gemini CLI) to build and operate my infrastructure. My agents need a comprehensive reference document for every tool in my stack so they can configure, troubleshoot, and optimize without hallucinating. This research will become that reference document.
 
 ## What These Tools Are (Group Introduction)
-The automation hub (n8n) + infrastructure services (cert-manager, Flannel) + the website (Astro) + version control (Git) — these are the remaining tools that connect everything. n8n is the central orchestration hub that receives webhooks from every service and drives cross-tool workflows. cert-manager provisions and renews TLS certificates automatically. Flannel CNI provides pod networking. Astro builds and delivers the helixstax.com website. Git is the backbone of the GitOps pipeline — every deployment and config change flows through a commit.
+The automation hub (n8n) + TLS management (Cloudflare Origin CA) + infrastructure services (Flannel) + the website (Astro) + version control (Git) — these are the remaining tools that connect everything. n8n is the central orchestration hub that receives webhooks from every service and drives cross-tool workflows. TLS is handled by Cloudflare Origin CA certificates (15-year, manual management — NO cert-manager, NO Let's Encrypt). Flannel CNI provides pod networking. Astro builds and delivers the helixstax.com website. Git is the backbone of the GitOps pipeline — every deployment and config change flows through a commit.
 
 ---
 
-## Part 1: n8n + cert-manager + Flannel CNI
+## Part 1: n8n + Cloudflare Origin CA TLS + Flannel CNI
 
 ## Our Specific Setup (Automation Services)
-- **Cluster**: K3s on AlmaLinux 9.7, Hetzner Cloud (heart: 178.156.233.12 control plane, helix-worker-1: 138.201.131.157 worker)
+- **Cluster**: K3s on AlmaLinux 9.7, Hetzner Cloud (helix-stax-cp: 178.156.233.12 cpx31 ash-dc1 control plane; helix-stax-vps: 5.78.145.30 cpx31 hil-dc1 role TBD)
 - **n8n**: Deployed on K3s via Helm, CloudNativePG PostgreSQL backend (NOT SQLite), Valkey for queue (worker mode), receives webhooks from all services
-- **cert-manager**: Deployed via Helm, ClusterIssuer using Let's Encrypt DNS-01 via Cloudflare API token, issues certs for *.helixstax.com and *.helixstax.net
+- **TLS**: Cloudflare Origin CA certificates (15-year), managed manually. NO cert-manager, NO Let's Encrypt. Certs stored as Kubernetes Secrets and referenced in Traefik IngressRoute TLS sections. Cloudflare handles edge TLS; Origin CA handles the Cloudflare-to-Traefik leg.
 - **Flannel**: Bundled with K3s (VXLAN backend), no separate installation needed, Hetzner private network as underlay
-- **Ingress**: Traefik — all services terminate TLS at Traefik using cert-manager certificates
-- **Secrets**: OpenBao + External Secrets Operator — cert-manager Cloudflare API token stored in OpenBao
-- **Identity**: Zitadel OIDC — n8n authenticates users via Zitadel; cert-manager and Flannel are infrastructure-only (no user auth)
+- **Ingress**: Traefik — all services terminate TLS at Traefik using Cloudflare Origin CA certificates
+- **Secrets**: OpenBao + External Secrets Operator — all sensitive credentials stored in OpenBao
+- **Identity**: Zitadel OIDC — n8n authenticates users via Zitadel; Flannel is infrastructure-only (no user auth)
 - **Internal domain**: helixstax.net for all internal services
 
 ## What I Need Researched
@@ -32,7 +32,7 @@ The automation hub (n8n) + infrastructure services (cert-manager, Flannel) + the
 - PersistentVolumeClaim for n8n data (workflows, credentials backup — even with DB backend)
 - Encryption key configuration (`N8N_ENCRYPTION_KEY` — must be consistent, stored in OpenBao)
 - Zitadel OIDC SSO for n8n (`N8N_AUTH_ENABLED`, OIDC env vars — does n8n support OIDC natively or need a proxy?)
-- Traefik IngressRoute with TLS (cert-manager certificate)
+- Traefik IngressRoute with TLS (Cloudflare Origin CA — secretName referencing the Origin CA TLS Secret)
 - Webhook URL configuration (`WEBHOOK_URL` — must be the public URL for external webhooks)
 - Resource requests/limits (n8n is memory-hungry — realistic limits for production)
 - Rolling update strategy for n8n (stateful considerations)
@@ -131,58 +131,52 @@ The automation hub (n8n) + infrastructure services (cert-manager, Flannel) + the
 
 ---
 
-### cert-manager
+### Cloudflare Origin CA Certificate Management
 
-#### 11. K3s Deployment
-- Helm chart (`cert-manager/cert-manager`) — values for production
-- CRDs installation (must install separately before chart — `--set installCRDs=true` or separate step)
-- Namespace: `cert-manager` (standard)
-- Resource requirements (lightweight — 64Mi per component)
-- `--set prometheus.enabled=true` — Prometheus ServiceMonitor for metrics
+#### 11. Overview and Architecture
+- We do NOT use cert-manager or Let's Encrypt. TLS is handled by Cloudflare Origin CA certificates (15-year validity), managed manually.
+- Architecture: Cloudflare handles edge TLS (client-to-Cloudflare leg, public CA). Origin CA handles the Cloudflare-to-Traefik leg (Cloudflare's own CA — trusted only by Cloudflare).
+- Cloudflare TLS mode must be "Full (Strict)" — requires a valid cert on the origin. Origin CA satisfies this.
+- No automatic renewal: 15-year certs expire in 2039+. Set a calendar reminder to regenerate before expiry.
 
-#### 12. ClusterIssuer Configuration
-- Let's Encrypt ACME server URLs: staging (`https://acme-staging-v02.api.letsencrypt.org/directory`) vs production (`https://acme-v02.api.letsencrypt.org/directory`)
-- DNS-01 challenge with Cloudflare:
-  - Cloudflare API token (scoped: Zone:DNS:Edit for helixstax.com and helixstax.net)
-  - Secret creation: `kubectl create secret generic cloudflare-api-token-secret -n cert-manager --from-literal=api-token=...`
-  - ClusterIssuer YAML with `dns01.cloudflare.apiTokenSecretRef`
-- Email for Let's Encrypt expiry notifications
-- Rate limits on Let's Encrypt production (5 certs per domain per week — use staging to test)
-- Staging ClusterIssuer + production ClusterIssuer — how to manage both
+#### 12. Generating Origin CA Certificates
+- Cloudflare Dashboard: SSL/TLS → Origin Server → Create Certificate
+- Choose RSA 2048 or EC P-256 (EC is preferred — smaller, faster)
+- Hostnames to cover: `*.helixstax.com`, `helixstax.com`, `*.helixstax.net`, `helixstax.net` (single cert covers both domains if added)
+- Validity: select 15 years (maximum)
+- Download: Origin Certificate (.pem) and Private Key (.key) — the private key is shown ONCE; store it in OpenBao immediately
+- Do NOT use this cert for non-Cloudflare traffic — it is only trusted by Cloudflare's CA
 
-#### 13. Certificate CRDs
-- `Certificate` resource spec: `secretName`, `dnsNames`, `issuerRef`, `renewBefore`, `duration`
-- Wildcard certificate for `*.helixstax.com` (requires DNS-01, not HTTP-01)
-- Wildcard certificate for `*.helixstax.net`
-- How Traefik references cert-manager certificates (TLSStore, IngressRoute TLS section, or `cert-manager.io/cluster-issuer` annotation)
-- Certificate status conditions: `Ready`, `Issuing`, `NotReady` — how to check with kubectl
-- Automatic renewal: cert-manager renews 30 days before expiry by default (`renewBefore`)
-- Certificate for specific services that need their own cert (not wildcard)
+#### 13. Installing as Kubernetes TLS Secrets
+- Create a TLS Secret from the downloaded cert and key:
+  ```bash
+  kubectl create secret tls cloudflare-origin-ca \
+    --cert=origin-cert.pem \
+    --key=origin-key.key \
+    -n <namespace>
+  ```
+- For a cluster-wide wildcard cert: create in `kube-system` or a dedicated `tls` namespace and reference via TLSStore
+- Referencing in IngressRoute: `spec.tls.secretName: cloudflare-origin-ca`
+- Referencing as default cert in TLSStore CRD for cluster-wide fallback
 
 #### 14. Integration with OpenBao PKI (Internal Certificates)
-- `Issuer` vs `ClusterIssuer` — when to use Vault/OpenBao issuer for internal services
-- OpenBao PKI secret engine as cert-manager issuer
-- Internal CA certificates for service-to-service mTLS
-- cert-manager trust-manager: distributing internal CA bundle to all namespaces as a ConfigMap (for pods to trust internal certs)
-- When to use Let's Encrypt (public services) vs OpenBao PKI (internal service mesh)
+- Internal service-to-service mTLS uses OpenBao PKI secret engine as an internal CA — separate from the public-facing Cloudflare Origin CA
+- OpenBao PKI issues short-lived certs (1-30 days) for service mesh mTLS
+- External Secrets Operator syncs OpenBao-issued certs into Kubernetes Secrets for consumption by pods
+- When to use each: Cloudflare Origin CA for Traefik (internet-facing, Cloudflare-proxied traffic); OpenBao PKI for internal service-to-service encryption
 
-#### 15. Troubleshooting
-- `kubectl describe certificaterequest` — reading challenge status
-- `kubectl describe challenge` — DNS-01 challenge details (is the TXT record propagated?)
-- Common failure: Cloudflare API token insufficient permissions
-- Common failure: DNS propagation timeout (Let's Encrypt checks too fast — DNS TTL issues)
-- Common failure: rate limit hit on production — how to check remaining quota
-- `cmctl` CLI tool — cert-manager's dedicated CLI for debugging
-- How to force certificate renewal: `kubectl annotate certificate <name> cert-manager.io/issueRequestName="" --overwrite`
-- Checking certificate expiry: `kubectl get certificate -A`
+#### 15. Verifying the Certificate
+- Check the cert is valid and covers the right domains: `openssl x509 -in origin-cert.pem -text -noout | grep -A2 "Subject Alternative Name"`
+- Verify Traefik is presenting the correct cert: `echo | openssl s_client -connect 178.156.233.12:443 -servername helixstax.com 2>/dev/null | openssl x509 -noout -issuer -dates`
+- Cloudflare dashboard shows "Full (Strict)" in SSL/TLS overview when Origin CA is correctly configured
+- Common issue: cert not found in IngressRoute — check Secret exists in correct namespace and secretName matches
 
 #### 16. Gotchas and Anti-Patterns
-- Never use HTTP-01 challenge behind Cloudflare proxy (Cloudflare terminates TLS before challenge can be served)
-- Wildcard certs require DNS-01 (not negotiable)
-- Staging certs are not trusted by browsers — only use for testing the pipeline
-- CRDs must be installed before the Helm chart (or use `--set installCRDs=true` carefully)
-- cert-manager and Traefik: use `IngressRoute` CRDs with `tls.secretName` pointing to cert-manager secret (NOT the `kubernetes.io/ingress.class` annotation path which is for Ingress resources)
-- Let's Encrypt rate limits are per registered domain, per week — plan certificate structure carefully
+- Origin CA certs are ONLY trusted by Cloudflare — do not use them for services accessed directly by IP or non-Cloudflare traffic
+- If Cloudflare proxy is disabled (grey cloud DNS-only), the Origin CA cert will cause browser SSL errors — use a publicly trusted cert for grey-cloud records
+- Store the private key in OpenBao immediately on download — it is shown only once in the Cloudflare dashboard
+- TLS mode must be "Full (Strict)" — "Full" without Strict allows self-signed certs and is less secure; "Flexible" sends traffic to origin unencrypted (never use)
+- Wildcard certs cover one level deep (`*.helixstax.com` covers `app.helixstax.com` but NOT `deep.app.helixstax.com`)
 
 ---
 
@@ -238,149 +232,70 @@ The automation hub (n8n) + infrastructure services (cert-manager, Flannel) + the
 ### Cross-Cutting Integration (Automation Services)
 
 #### 22. How These Three Work Together
-- cert-manager provisions wildcard certs for `*.helixstax.com` and `*.helixstax.net` via Cloudflare DNS-01
-- Flannel ensures all pods (including cert-manager, n8n, and all services) can communicate across nodes
-- n8n receives Alertmanager webhook when cert expiry alert fires → posts to Rocket.Chat `#ops-alerts`
-- n8n workflow: check cert expiry via `kubectl get certificate` output or Prometheus metric → alert if < 14 days
-- cert-manager Prometheus metrics → scraped by Prometheus → Grafana dashboard → Alertmanager rule for cert near expiry → n8n webhook
+- Cloudflare Origin CA certificates (15-year) are stored as Kubernetes Secrets and referenced by Traefik IngressRoutes — no automated renewal needed
+- Flannel ensures all pods (including n8n and all services) can communicate across nodes
+- n8n receives Alertmanager webhook when a cert expiry alert fires → posts to Rocket.Chat `#ops-alerts`
+- n8n workflow: check cert expiry by querying Prometheus metric `x509_cert_expiry` (from x509-certificate-exporter) or via OpenSSL probe → alert if < 90 days (well before 15-year expiry becomes a concern)
+- Prometheus x509-certificate-exporter scrapes Kubernetes TLS Secrets → Grafana dashboard → Alertmanager rule for cert near expiry → n8n webhook
 
 #### 23. n8n Webhook Processing Order (Reference Architecture)
 - Alertmanager fires → n8n receives → classifies severity → routes to Rocket.Chat channel + optionally creates ClickUp incident task
-- ArgoCD sync fails → n8n receives → checks if cert issue (calls cert-manager API or k8s API) → posts diagnostic to Rocket.Chat
+- ArgoCD sync fails → n8n receives → checks if TLS cert issue (calls k8s API to inspect TLS Secret expiry or Traefik logs) → posts diagnostic to Rocket.Chat
 - CrowdSec bans IP → n8n receives → logs to ClickUp Security Operations list → optionally adds Cloudflare WAF rule via API
 
 ---
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
 ## Required Output Format (Part 1)
 
-Structure your response EXACTLY like this — it will be split into three separate skill files for AI agents. Use `# Tool Name` as top-level headers so the output can be split:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# n8n
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[2-3 sentences]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## K3s Deployment
-[Helm values, env vars, CloudNativePG config, Valkey queue config]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (helix-stax-cp: 178.156.233.12, helix-stax-vps: 5.78.145.30), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## Workflow Development
-### Node Reference
-[Core nodes with parameters]
-### Expressions Reference
-[Common expression patterns]
-### Looping and Batching
-[SplitInBatches patterns]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## Credential Management
-[Credential types, encryption, backup]
-
-## Webhook Integration Patterns
-### ArgoCD
-[Webhook config, n8n handling]
-### Devtron
-[...]
-### Harbor
-[...]
-### CrowdSec
-[...]
-### Alertmanager
-[...]
-### GitHub
-[...]
-
-## HTTP Request Node Patterns
-[Per-service: URL, headers, body, response parsing]
-
-## Error Handling
-[Per-node, global error workflow, dead letter]
-
-## Workflow Backup and Versioning
-[Export/import, Git backup workflow]
-
-## Community Nodes
-[Install process, notable nodes, LangChain integration]
-
-## n8n API Reference
-[Key endpoints, API key usage]
-
-## Monitoring
-[Prometheus metrics, Grafana dashboard, Loki logging]
-
-## Troubleshooting
-[Common errors with fixes]
-
-## Gotchas
-[Encryption key, webhook URL, worker mode gotchas]
-
----
-
-# cert-manager
-
-## Overview
-[2-3 sentences]
-
-## K3s Deployment
-[Helm values, CRD installation, namespacing]
-
-## ClusterIssuer Configuration
-### Let's Encrypt Staging
-[Full YAML]
-### Let's Encrypt Production
-[Full YAML]
-### Cloudflare API Token
-[Secret creation, token scope]
-
-## Certificate CRDs
-### Wildcard Certificate (*.helixstax.com)
-[Full YAML]
-### Wildcard Certificate (*.helixstax.net)
-[Full YAML]
-### Traefik Integration
-[How IngressRoute references the secret]
-
-## OpenBao PKI Integration
-[Internal CA issuer, trust-manager]
-
-## Automatic Renewal
-[Timeline, renewBefore, how to verify]
-
-## Troubleshooting
-[certificaterequest, challenge debugging, rate limits, cmctl commands]
-
-## Gotchas
-[HTTP-01 behind Cloudflare, staging vs prod, CRD install order]
-
----
-
-# Flannel CNI
-
-## Overview
-[2-3 sentences]
-
-## Architecture
-[VXLAN overlay, Hetzner underlay, packet flow]
-
-## K3s Configuration
-[Flags, CIDR choices, backend options]
-
-## MTU Configuration
-[Hetzner MTU, VXLAN overhead, how to set]
-
-## Network Policy Limitations
-[What Flannel can't do, options for NetworkPolicy]
-
-## Debugging
-[Commands, common issues, fixes]
-
-## Cilium Migration
-[When, why, complexity, K3s steps]
-
-## Gotchas
-[Hetzner firewall UDP 8472, MTU mismatch, host-gw vs vxlan]
-```
-
-Be thorough, opinionated, and practical. Include actual Kubernetes YAML manifests, actual Helm values, actual kubectl commands, and actual env var names with example values. Do NOT give me theory — give me copy-paste-ready configs for a K3s cluster on Hetzner with Cloudflare DNS-01, CloudNativePG, Valkey, OpenBao, and Traefik.
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.
 
 ---
 
@@ -393,7 +308,7 @@ Be thorough, opinionated, and practical. Include actual Kubernetes YAML manifest
 - **Deployment target**: K3s on Hetzner Cloud (NOT Vercel/Netlify — self-hosted)
 - **Container build**: Kaniko via Devtron CI, pushed to Harbor registry
 - **GitOps**: ArgoCD syncs Helm chart → K3s deployment, watches the Git repo for changes
-- **Ingress**: Traefik IngressRoute with cert-manager TLS (Let's Encrypt)
+- **Ingress**: Traefik IngressRoute with Cloudflare Origin CA TLS (15-year cert stored as K8s Secret)
 - **Domain**: helixstax.com (Cloudflare CDN + WAF in front)
 - **Git platform**: GitHub (KeemWilliams organization)
 - **Author**: All commits are authored by Wakeem Williams. No Co-Authored-By lines. No GPG signing (broken on Windows).
@@ -666,109 +581,33 @@ Be thorough, opinionated, and practical. Include actual Kubernetes YAML manifest
 
 ## Required Output Format (Part 2)
 
-Structure your response EXACTLY like this — it will be split into two separate skill files for AI agents. Use `# Tool Name` as top-level headers so the output can be split:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# Astro
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[2-3 sentences]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## Project Structure
-[Directory tree with purpose of each directory]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (helix-stax-cp: 178.156.233.12, helix-stax-vps: 5.78.145.30), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## Configuration Reference (astro.config.mjs)
-[Annotated example config for our setup]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## Routing
-[File-based routing, dynamic routes, redirects, 404]
-
-## Components
-### Astro Components
-[Syntax, props, scoped styles]
-### React Islands
-[client: directives with when to use each]
-### State Management (nanostores)
-[Pattern for sharing state between islands]
-
-## Tailwind CSS
-[Integration, config, dark mode, @apply patterns]
-
-## shadcn/ui
-[Installation, components, theming, CSS variables]
-
-## Content Collections
-[Schema definition, getCollection, rendering markdown]
-
-## Build and SSG
-[npm run build, environment variables, build-time data fetching]
-
-## Docker Containerization
-[Multi-stage Dockerfile for K3s, Nginx config, health check]
-
-## SEO
-[Head meta, canonical, sitemap, JSON-LD, OG image]
-
-## Image Optimization
-[<Image>, <Picture>, src/assets vs public/]
-
-## Performance
-[Islands, View Transitions, prefetch, Lighthouse targets]
-
-## Troubleshooting
-[Common build errors, hydration mismatches, Tailwind purging]
-
-## Gotchas
-[output mode for K3s, public/ vs src/assets, client: directive mistakes]
-
----
-
-# Git
-
-## Overview
-[2-3 sentences]
-
-## Workflow for Helix Stax
-[Trunk-based dev, branch naming, protection rules]
-
-## Commit Conventions
-[Conventional Commits format, types, examples, author config]
-
-## Git Hooks
-### pre-commit (Gitleaks)
-[Setup commands, .gitleaks.toml, .gitleaksignore]
-### Sharing Hooks
-[core.hooksPath pattern]
-
-## GitOps with ArgoCD
-[Git as source of truth, never kubectl edit, rollback pattern]
-
-## Rebase and Merge
-[When to rebase, interactive rebase, pull.rebase config]
-
-## Stash Patterns
-[Named stash, pop vs apply, untracked files]
-
-## Worktrees (AI Agent Pattern)
-[Add, list, remove, path conventions]
-
-## .gitignore Reference
-[Complete .gitignore for our stack]
-
-## Git LFS
-[When to use, setup, vs MinIO]
-
-## Tag and Release Management
-[Annotated tags, gh release, ArgoCD image tag pattern]
-
-## Debugging
-[bisect, reflog, log graph, blame, cherry-pick]
-
-## Troubleshooting
-[Common mistakes, recovery commands]
-
-## Gotchas
-[GPG signing on Windows, no Co-Authored-By, rebase on shared branches]
-```
-
-Be thorough, opinionated, and practical. Include actual CLI commands, actual config file examples, actual Dockerfile content, and actual git commands. Do NOT give me theory — give me copy-paste-ready content for an Astro static site deployed on K3s via Devtron + Harbor + ArgoCD, with Git conventions suitable for a solo developer using AI coding agents (Claude Code) on Windows 11.
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.

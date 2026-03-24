@@ -17,11 +17,11 @@ These three tools are deeply coupled: Cloudflare's TLS mode determines what cert
 
 - **Domain**: helixstax.com (public), helixstax.net (internal services)
 - **DNS**: Cloudflare manages all DNS records for both domains
-- **Cluster**: K3s on AlmaLinux 9.7, Hetzner Cloud (heart CP: 178.156.233.12, helix-worker-1 worker: 138.201.131.157)
+- **Cluster**: K3s on AlmaLinux 9.7, Hetzner Cloud (helix-stax-cp: 178.156.233.12 cpx31 ash-dc1 control plane; helix-stax-vps: 5.78.145.30 cpx31 hil-dc1 role TBD)
 - **Edge**: Cloudflare CDN/WAF/Zero Trust sits in front — all traffic arrives with CF-Connecting-IP header; real client IP must be extracted by Traefik
 - **Zero Trust**: Cloudflare Access + Tunnel configured for internal services; Zitadel is our IdP, Cloudflare Access uses it for authentication
 - **Ingress style**: Traefik CRDs exclusively — IngressRoute, Middleware, TLSOption, IngressRouteTCP. We do NOT use Kubernetes Ingress resources.
-- **TLS**: cert-manager issues Let's Encrypt certs via Cloudflare DNS-01 challenge; Cloudflare origin certs for the Cloudflare-to-Traefik leg; Cloudflare edge TLS for the client-to-Cloudflare leg
+- **TLS**: Cloudflare Origin CA certificates (15-year), managed manually. NO cert-manager, NO Let's Encrypt. Cloudflare handles edge TLS (client-to-Cloudflare); Origin CA certs handle the Cloudflare-to-Traefik leg. Certs are stored as Kubernetes Secrets and referenced in IngressRoute TLS sections.
 - **WAF**: Cloudflare managed rulesets active
 - **Auth**: forwardAuth middleware pointing to Zitadel OIDC for protected services (Grafana, n8n, Devtron, ArgoCD, Outline, Backstage, Rocket.Chat)
 - **Helm version**: Helm 3 (no Tiller)
@@ -125,11 +125,10 @@ These three tools are deeply coupled: Cloudflare's TLS mode determines what cert
 - Middleware scoping: namespace-scoped vs cross-namespace via provider.kubernetescrd.allowCrossNamespace
 
 ### TR-3. TLS Configuration
-- cert-manager integration: how Traefik picks up Certificates issued by cert-manager (via tls.secretName in IngressRoute); Certificate CRD vs managed certs
-- Let's Encrypt DNS-01 challenge via Cloudflare: how cert-manager ClusterIssuer is configured; what Traefik does vs what cert-manager does — clear separation of responsibilities
-- Cloudflare origin certificates: when to use them for the Cloudflare→Traefik leg vs Let's Encrypt; how to install origin cert as a Kubernetes Secret and reference it in IngressRoute
-- TLS modes aligned with Cloudflare: Full vs Full (Strict) — what each requires on the Traefik side; which certificates are needed
-- Wildcard certificates: requesting *.helixstax.com and *.helixstax.net via DNS-01; how to reference a wildcard cert from multiple IngressRoutes
+- Cloudflare Origin CA certificate management: generating 15-year Origin CA certs in Cloudflare dashboard, installing as Kubernetes TLS Secrets, referencing via tls.secretName in IngressRoute. NO cert-manager, NO Let's Encrypt.
+- How Traefik references the Origin CA cert: `tls.secretName` in IngressRoute spec, or via TLSStore defaultCertificate for a cluster-wide fallback
+- TLS modes aligned with Cloudflare: Full vs Full (Strict) — Full Strict requires a valid CA-signed cert on the origin; Cloudflare Origin CA satisfies this for the Cloudflare→Traefik leg
+- Wildcard Origin CA certificates: generating *.helixstax.com and *.helixstax.net wildcard certs in Cloudflare dashboard; how to reference a wildcard cert from multiple IngressRoutes
 - Default TLS certificate: configuring a fallback cert for unmatched SNI; defaultCertificate in TLSStore CRD
 - TLSOption CRD: enforcing TLS 1.2 minimum, disabling weak cipher suites, configuring sniStrict
 
@@ -259,7 +258,7 @@ These three tools are deeply coupled: Cloudflare's TLS mode determines what cert
 - values files in ArgoCD: path is relative to the source repo root; how to reference environment-specific values files per ArgoCD Application
 - Helm secrets with ArgoCD: using ArgoCD Vault Plugin (AVP) or External Secrets Operator instead of helm-secrets plugin (ArgoCD cannot run helm-secrets natively)
 - App of Apps pattern: one ArgoCD Application that deploys a chart containing other ArgoCD Application manifests; bootstrapping a cluster
-- Sync waves: argocd.argoproj.io/sync-wave annotation; controlling install order (cert-manager before Zitadel, CloudNativePG before apps that need PostgreSQL)
+- Sync waves: argocd.argoproj.io/sync-wave annotation; controlling install order (Traefik before services that need ingress, CloudNativePG before apps that need PostgreSQL, Zitadel before apps that need OIDC)
 - Resource health checks: ArgoCD built-in health checks for Helm-deployed resources; custom health checks for CRDs (e.g., CloudNativePG Cluster resource)
 - Drift detection: ArgoCD detecting when someone ran `helm upgrade` manually outside GitOps; self-heal behavior
 
@@ -305,9 +304,65 @@ These three tools are deeply coupled: Cloudflare's TLS mode determines what cert
 
 ---
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
+---
+
 ## Required Output Format
 
-Structure your response using the following top-level `#` headers — one per tool — so the output can be split into three separate skill files:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
+
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
+
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
+
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (helix-stax-cp: 178.156.233.12, helix-stax-vps: 5.78.145.30), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
+
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
+
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.
+
+---
+
+The following is the legacy output structure for reference — the progressive disclosure format above supersedes it:
+
+```markdown
 
 ```markdown
 # Cloudflare
@@ -387,16 +442,12 @@ Structure your response using the following top-level `#` headers — one per to
 [Order, failure behavior, cross-namespace]
 
 ## TLS
-### cert-manager Integration
-[How certs are provisioned and referenced]
-### Let's Encrypt DNS-01 via Cloudflare
-[ClusterIssuer config, responsibility split]
-### Cloudflare Origin Certs
-[When and how to use them]
+### Cloudflare Origin CA Certificate Management
+[How to generate 15-year Origin CA certs, install as K8s Secrets, reference in IngressRoute. NO cert-manager, NO Let's Encrypt.]
 ### TLS Modes with Cloudflare
-[Full vs Full Strict requirements]
-### Wildcard Certs
-[Request and reference pattern]
+[Full vs Full Strict requirements — Full Strict requires Origin CA cert on Traefik]
+### Wildcard Origin CA Certs
+[Generating *.helixstax.com and *.helixstax.net in Cloudflare dashboard, referencing from multiple IngressRoutes]
 ### TLSOption & TLSStore
 [Minimum version, cipher suites, fallback cert]
 

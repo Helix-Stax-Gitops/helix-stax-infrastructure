@@ -145,114 +145,54 @@ Velero is our backup and disaster recovery solution for the K3s cluster. It back
 - Troubleshooting restore conflict: resource already exists — `--existing-resource-policy update` or pre-delete
 - Migration use case: using Velero to migrate a namespace from old cluster to new cluster — step-by-step
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
 ## Required Output Format
 
-Structure your response EXACTLY like this — it will be directly saved as a reference document for AI agents:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# Velero
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[2-3 sentence description of what Velero does and why we use it]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## CLI Reference
-### Installation
-[velero install command with MinIO flags]
-### Backup Commands
-[create, get, describe, logs, delete — all flags]
-### Restore Commands
-[create, get, describe — all flags]
-### Schedule Commands
-[create, get, describe, delete]
-### Utility Commands
-[backup-location, plugin, version, debug]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (178.156.233.12, 138.201.131.157), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## Deployment on K3s
-### Helm Values (values.yaml)
-[Complete values file for MinIO backend]
-### Credentials Secret
-[Exact format of AWS credentials file for MinIO]
-### Node Agent (Kopia)
-[DaemonSet config, enabling file-level backup]
-### ArgoCD Application Manifest
-[GitOps deployment example]
-### Plugin Compatibility Matrix
-[Velero version -> plugin version]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## Backup Strategy
-### Backup Tiers
-[Critical / Platform / Full with schedules and TTLs]
-### Schedule CRDs
-[Full Schedule manifests for each tier]
-### What Gets Backed Up
-[K8s objects, PVCs, cluster-scoped resources]
-### What Requires Special Handling
-[CloudNativePG, Valkey, Secrets]
-
-## Storage Locations
-### MinIO BackupStorageLocation
-[Full CRD manifest]
-### MinIO IAM Policy
-[Exact JSON policy for Velero user]
-### Backblaze B2 BackupStorageLocation
-[Full CRD manifest]
-### MinIO to B2 Replication
-[mc mirror CronJob manifest]
-
-## Volume Backups (Kopia)
-### Enabling Kopia
-[init container config, node agent]
-### PVC Annotation Pattern
-[Opt-in and opt-out annotations]
-### Verifying Volume Backup
-[velero describe output to look for]
-
-## Database Consistency
-### CloudNativePG Strategy
-[CNPG native backup vs Velero — recommended split]
-### Pre-Backup Hook for Valkey
-[Hook annotation + BGSAVE command]
-### Hook CRD Configuration
-[Backup spec hooks block]
-
-## Restore Procedures
-### Full Namespace Restore
-[Command + what to check]
-### Partial Resource Restore
-[Command examples]
-### Cross-Namespace Restore (Testing)
-[namespace-mappings pattern]
-### Cluster-Scoped Resource Restore
-[include-cluster-resources flag]
-
-## Disaster Recovery Runbook
-### Scenario: Control Plane Lost
-[Step-by-step rebuild procedure]
-### Restore Order
-[Dependency-ordered namespace restore]
-### Validation Checklist
-[Post-restore checks per namespace]
-### RTO/RPO Targets
-[Realistic estimates for our setup]
-
-## Monitoring
-### Prometheus Scrape Config
-[ServiceMonitor or static config]
-### Key Metrics Reference
-[All velero_* metrics with descriptions]
-### Grafana Dashboard
-[Dashboard ID or panel examples]
-### Alerting Rules
-[PrometheusRule manifest]
-
-## Troubleshooting
-[Symptom -> cause -> fix for each issue]
-
-## Gotchas
-[Kopia vs Restic naming, CSI vs file-level, CNPG native vs Velero, MinIO path-style, TTL vs count]
-
-## Migration Playbook
-[Using Velero to move workloads between clusters]
-```
-
-Be thorough, opinionated, and practical. Include actual `velero` CLI commands with all flags, actual Helm `values.yaml` for MinIO, actual Schedule CRD manifests, actual PrometheusRule alerts, and actual step-by-step DR runbook commands. Do NOT give me theory — give me copy-paste-ready configs for Velero on K3s with MinIO primary storage, Backblaze B2 offsite, Kopia file-level backups, and CloudNativePG-aware backup hooks.
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.

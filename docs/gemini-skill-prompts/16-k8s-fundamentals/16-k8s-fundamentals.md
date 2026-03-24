@@ -328,136 +328,54 @@ How they connect: K3s runs the cluster and exposes the Kubernetes API → kubect
 
 ---
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
 ## Required Output Format
 
-Structure your response with these EXACT top-level headers (using `#`) so it can be split into three separate skill files. Each section must be self-contained — do not assume the reader has read the other sections.
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# K3s
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[What K3s is and how it differs from standard Kubernetes, why Helix Stax uses it]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## Architecture
-[Server vs agent, embedded components, datastore options, token]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (178.156.233.12, 138.201.131.157), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## Installation and Configuration
-[Server install flags, agent join, kubeconfig, systemd service]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## K3s-Specific Features
-### registries.yaml (Harbor Mirror)
-[Full example, how to configure, when changes apply]
-### Traefik in K3s
-[Built-in Traefik vs Helm-managed, why we manage our own]
-### local-path-provisioner
-[What it does, limitations, when to use]
-### ServiceLB (Klipper)
-[How it works, external IP assignment, interaction with Cloudflare]
-
-## Node Management
-[Labels, taints, cordon/drain, conditions, top]
-
-## Upgrades
-[system-upgrade-controller, upgrade Plan CRD, 2-node upgrade procedure, rollback]
-
-## Backup and Restore
-[etcd snapshot commands, schedule, MinIO storage, restore procedure]
-
-## Networking
-[Flannel VXLAN, CoreDNS, firewall ports, pod-to-pod traffic, SELinux on AlmaLinux]
-
-## Troubleshooting
-[K3s logs, crictl commands, etcd health, common failures]
-
-## Gotchas
-[K3s-vs-standard-K8s differences, SELinux, containerd vs Docker, embedded Traefik conflicts]
-
----
-
-# kubectl
-
-## Overview
-[What kubectl is and why every agent must know it cold]
-
-## Configuration and Context Management
-[kubeconfig, merging, context switching, default namespace, CI token]
-
-## Resource Inspection
-[get flags, describe, explain, api-resources, short names]
-
-## Logs and Debugging
-[logs flags, exec, port-forward, cp, debug ephemeral containers, top]
-
-## Apply, Create, Delete, Patch
-[apply vs create, dry-run, diff, delete flags, patch types, edit, replace]
-
-## Rollout Management
-[status, history, undo, restart, pause/resume — Deployment, StatefulSet, DaemonSet]
-
-## RBAC and Access Control
-[auth can-i, listing bindings, ServiceAccount tokens for CI]
-
-## Output Formatting and Scripting
-[JSONPath, custom-columns, jq combos, label columns, sorting]
-
-## Useful Plugins (krew)
-[Plugin list with use cases]
-
-## Troubleshooting Patterns
-[Command sequences for common problems: pod not starting, service not reachable, image pull fail]
-
----
-
-# Kubernetes Manifests (YAML)
-
-## Overview
-[Why manifest fluency is foundational — every tool in the stack is configured via manifests]
-
-## Workload Resources
-### Deployment
-[Full annotated YAML, rolling update strategy, all pod spec fields]
-### StatefulSet
-[When to use, volumeClaimTemplates, headless Service, which Helix Stax services use it]
-### DaemonSet
-[When to use, control plane toleration, update strategy]
-
-## Networking Resources
-### Service (ClusterIP, NodePort, LoadBalancer, Headless)
-[Full examples, selector patterns, port naming]
-### Traefik IngressRoute (Our Standard)
-[Full IngressRoute YAML, Middleware CRD, TLS config, match syntax]
-### NetworkPolicy
-[Default deny all, allow-from-namespace pattern, Flannel limitation, NeuVector as enforcement]
-
-## Configuration Resources
-### ConfigMap
-[YAML, consumption patterns, size limit, immutable]
-### Secret
-[Types, NEVER in git, consumption patterns, imagePullSecret]
-
-## Storage Resources
-### PV, PVC, StorageClass
-[Full PVC YAML, local-path vs Longhorn, access modes, reclaim policy, stuck deletion]
-
-## Namespace Conventions
-[Our namespace list, purpose of each, namespace-level defaults]
-
-## Label and Annotation Standards
-[Required labels, selector patterns, our annotation conventions]
-
-## Resource Management
-[requests vs limits, LimitRange, ResourceQuota, HPA, VPA]
-
-## Advanced Patterns
-### Kustomize
-[kustomization.yaml, overlay structure, ArgoCD + Kustomize]
-### Patch Types
-[Strategic merge, JSON merge, JSON Patch — when to use each]
-### Pod Security Context
-[Pod-level and container-level, capabilities, Kyverno enforcement]
-
-## Debugging Manifests
-[dry-run server, diff, common YAML errors, explain, events, pod failure states]
-```
-
-Be thorough, opinionated, and practical. Include actual YAML manifests (full, annotated, copy-paste ready), actual kubectl commands with flags, actual K3s install commands with our specific flags, actual registries.yaml for Harbor, actual IngressRoute YAML for Traefik. Do NOT give me theory — give me what an AI agent needs to operate a 2-node K3s cluster on AlmaLinux 9.7 at Hetzner Cloud without hallucinating. Flag every place where K3s differs from standard Kubernetes.
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.

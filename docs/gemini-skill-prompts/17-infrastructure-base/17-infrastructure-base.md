@@ -132,155 +132,54 @@ This group covers the physical and OS layer that everything else sits on. AlmaLi
 - Hetzner API: REST API v1, authentication header, rate limits, useful endpoints for automation
 - OpenTofu provider: `hcloud` provider reference, resource types (`hcloud_server`, `hcloud_network`, `hcloud_firewall`, `hcloud_volume`, `hcloud_ssh_key`)
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
 ## Required Output Format
 
-Structure your response EXACTLY like this — it will be split into separate skill files for AI agents. Use `# Tool Name` as top-level headers so the output can be mechanically split:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# AlmaLinux 9.7
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[2-3 sentence description]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## systemd
-### Unit File Anatomy
-[directives, examples]
-### Service Management
-[commands with examples]
-### Timers
-[.timer unit examples]
-### Troubleshooting
-[failed units, dependency issues]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (178.156.233.12, 138.201.131.157), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## SELinux
-### Core Concepts
-[types, domains, contexts]
-### Context Management
-[chcon vs semanage vs restorecon]
-### audit2allow Workflow
-[full AVC denial -> policy module workflow]
-### K3s-Specific Denials
-[common denials and fixes]
-### Troubleshooting
-[commands and patterns]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## firewalld
-### Zone Model
-[zone assignments]
-### firewall-cmd Reference
-[commands with examples]
-### K3s Required Rules
-[exact commands for K3s ports]
-### Rich Rules
-[syntax examples]
-### Troubleshooting
-[common issues]
-
-## Package Management (dnf)
-### Common Commands
-[install, remove, update patterns]
-### Security Updates
-[dnf-automatic, security-only updates]
-### Repo Management
-[EPEL, CRB, custom repos]
-### Troubleshooting
-[history, rollback]
-
-## System Tuning
-### sysctl for K3s
-[exact parameters and values]
-### SSH Hardening
-[sshd_config directives]
-### CIS Benchmark Exemptions
-[what breaks K3s and how to exempt]
-### chronyd
-[time sync commands]
-
-# Networking
-
-## Overview
-[2-3 sentence description]
-
-## nftables / iptables
-### nftables Basics
-[tables, chains, rules]
-### K3s iptables Rules
-[kube-proxy chains, debugging]
-
-## Traffic Analysis
-### tcpdump
-[capture commands for K3s debugging]
-### ss
-[socket inspection commands]
-
-## DNS Debugging
-### dig Reference
-[query patterns]
-### systemd-resolved
-[config and debugging]
-### CoreDNS in K3s
-[ConfigMap, Corefile, debugging]
-### Pod DNS Debugging
-[kubectl exec patterns]
-
-## TLS Debugging
-### openssl Commands
-[s_client, x509, verify]
-### Certificate Chain Debugging
-[common failures and fixes]
-
-## Flannel VXLAN
-### Architecture
-[VTEP, encapsulation, MTU]
-### Troubleshooting
-[connectivity failures, route debugging]
-
-## Network Namespaces
-### Pod Namespace Access
-[nsenter patterns]
-
-# Hetzner Cloud
-
-## Overview
-[2-3 sentence description]
-
-## hcloud CLI Reference
-### Authentication
-[context, token]
-### Server Management
-[create, list, reboot, delete with examples]
-### Network Management
-[private network commands]
-### Firewall Management
-[rule creation, K3s required rules]
-### Volume Management
-[create, attach, format, mount]
-### Snapshots
-[create, restore workflow]
-
-## cloud-init
-### User Data Structure
-[script examples for AlmaLinux bootstrap]
-### Debugging
-[log locations]
-
-## OpenTofu Provider
-### Resource Reference
-[hcloud_server, hcloud_network, hcloud_firewall, hcloud_volume examples]
-
-## Architecture Decisions
-### Node Sizing
-[CX32 right-sizing rationale]
-### Private Network Design
-[CIDR, routing, inter-node]
-### Firewall Layering
-[Hetzner cloud firewall + firewalld strategy]
-
-## Cost Model
-[pricing breakdown, optimization tips]
-
-## Troubleshooting
-[rescue mode, console access, common failures]
-```
-
-Be thorough, opinionated, and practical. Include actual CLI commands, actual config snippets, and actual error messages where relevant. Do NOT give theory — give copy-paste-ready commands and configs for AlmaLinux 9.7 nodes running K3s on Hetzner Cloud. Assume SELinux is enforcing and firewalld is active at all times.
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.

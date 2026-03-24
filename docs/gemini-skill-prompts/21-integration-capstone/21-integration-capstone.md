@@ -216,132 +216,54 @@ This is the capstone integration reference for the full Helix Stax infrastructur
   11. Create Velero backup schedule annotation on namespace
   12. Add Kyverno policy exceptions if needed (e.g., service needs root)
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
 ## Required Output Format
 
-Structure your response EXACTLY like this — it will be directly saved as a reference document for AI agents:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# Helix Stax Infrastructure Integration
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[2-3 sentence description of the full stack and the purpose of this capstone document]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## Architecture Map
-### Traffic Flow
-[Internet -> Cloudflare -> Traefik -> Services, with each hop annotated]
-### DNS Architecture
-[Cloudflare DNS records, split DNS, CoreDNS internals]
-### Network Layers
-[Hetzner firewall -> CrowdSec -> Traefik middleware -> Service]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (178.156.233.12, 138.201.131.157), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## Service Dependency Graph
-### Tier 0 (No Dependencies)
-[Services that can boot with only K8s]
-### Tier 1 (Depends on Tier 0)
-[Services with single upstream dependencies]
-### Tier 2 (Depends on Tier 1)
-[Services with multi-layer dependencies]
-### Tier 3 (Depends on Tier 2)
-[Application layer services]
-### Dependency Table
-[Table: Service | Depends On | Required For]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## Authentication Flow
-### Zitadel as Central IdP
-[OIDC flow diagram in text, client registration summary]
-### Per-Service OIDC Config
-[Table: Service | Client ID pattern | Scopes | Redirect URI pattern | Role mapping]
-### Machine-to-Machine (M2M)
-[Service accounts, client credentials flow]
-### SSO Session Flow
-[End-to-end: user hits Grafana -> redirected to Zitadel -> token -> Grafana session]
-
-## Observability Flow
-### Metrics Pipeline
-[Every service -> Prometheus -> Grafana, ServiceMonitor setup]
-### Logging Pipeline
-[Promtail -> Loki -> Grafana, pipeline stages]
-### Alerting Pipeline
-[Alertmanager -> Rocket.Chat -> Postal, routing rules]
-### Key Alerts per Service
-[Table: Service | Alert condition | Severity | Channel]
-
-## Backup & Recovery Flow
-### Velero Backup Flow
-[Schedule -> what's captured -> MinIO -> B2]
-### CloudNativePG WAL Archiving
-[Continuous WAL -> MinIO -> PITR procedure]
-### MinIO to Backblaze B2
-[Replication method, schedule]
-### Full DR Procedure
-[Ordered recovery from total cluster loss]
-
-## CI/CD Flow
-### Developer Push Flow
-[git push -> Devtron -> Harbor -> ArgoCD -> K3s]
-### GitOps Config Change Flow
-[PR -> merge -> ArgoCD sync]
-### Gitleaks Integration
-[Where scanning happens in the pipeline]
-### Harbor Vulnerability Scanning
-[Trivy integration, blocking policy]
-
-## Secret Management Flow
-### SOPS + age (Git Layer)
-[What's encrypted, how agents decrypt, key location]
-### OpenBao (Runtime Layer)
-[Auth methods, secret engines, paths reference]
-### External Secrets Operator (K8s Layer)
-[SecretStore -> ExternalSecret -> K8s Secret]
-### Secret Lifecycle
-[Creation -> rotation -> revocation procedure]
-
-## Failure Analysis
-### Blast Radius Table
-[Table: Component | Failure Mode | Services Affected | Recovery Time | Data Loss Risk]
-### Critical Path Analysis
-[The 3-4 most dangerous single points of failure and how to mitigate]
-### Recovery Procedures
-[Per-component recovery runbook references]
-
-## Bootstrap Order
-### Phase 1: Infrastructure
-[OpenTofu + Ansible steps]
-### Phase 2: Core Platform
-[Traefik, cert-manager, ESO, OpenBao, PostgreSQL, MinIO]
-### Phase 3: Identity & Registry
-[Zitadel, Harbor, Valkey]
-### Phase 4: CI/CD & Observability
-[Devtron, ArgoCD, Prometheus, Grafana, Loki, CrowdSec, Kyverno]
-### Phase 5: Applications
-[n8n, Rocket.Chat, Outline, Postal, Velero]
-### Phase 6+: Extended Platform
-[Backstage, OpenTelemetry]
-
-## Day-2 Operations
-### Upgrade Procedures
-[K3s, Helm charts, OS patching — with cordon/drain steps]
-### Certificate Management
-[Auto-renew tracking, manual cert rotation]
-### Credential Rotation
-[OIDC secrets, PostgreSQL passwords, MinIO access keys — coordinated rotation steps]
-### Capacity Management
-[MinIO growth, PostgreSQL connections, Loki log volume]
-
-## Adding a New Service
-[Complete 10-step checklist: Zitadel -> OpenBao -> ESO -> Helm -> DNS -> Traefik -> Prometheus -> Loki -> ArgoCD -> Velero]
-
-## Common Cross-Cutting Tasks
-### Adding a New Client (Business)
-[Zitadel org/project, Outline workspace, Rocket.Chat channel, ClickUp folder]
-### Rotating All Credentials
-[Emergency full rotation procedure]
-### Debugging Auth Failures
-[Flowchart: is Zitadel up? -> is OIDC client correct? -> is redirect URI matching? -> check token scopes]
-### Debugging Missing Logs
-[Promtail -> Loki -> Grafana troubleshooting chain]
-### Debugging Missing Metrics
-[ServiceMonitor -> Prometheus targets -> Grafana datasource]
-```
-
-Be thorough, opinionated, and practical. Include actual resource names, actual Kubernetes manifest snippets, actual CLI commands, and actual error messages where relevant. Do NOT give me theory — give me copy-paste-ready configs and commands for this specific K3s cluster on Hetzner. Reference the actual service names (helixstax.net domains, Zitadel at auth.helixstax.net, Grafana at grafana.helixstax.net, etc.). Where you must make naming assumptions, state them explicitly so I can correct them.
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.

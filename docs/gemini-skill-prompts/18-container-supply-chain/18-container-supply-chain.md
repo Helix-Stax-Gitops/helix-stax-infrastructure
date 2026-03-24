@@ -16,7 +16,7 @@ Note: Harbor has a prior prompt (prompt 11) covering basic setup. This prompt go
 - **Signing**: Cosign (keyless via Sigstore, or key-based with OpenBao-managed keys)
 - **SBOM**: Syft generates SBOMs attached as OCI artifacts
 - **Policy enforcement**: Kyverno validates signatures and scan results at admission
-- **Runtime**: NeuVector monitors running containers for behavioral anomalies
+- **Runtime**: NeuVector monitors running containers for behavioral anomalies (Phase 3+ — runtime security, not deployed initially)
 - **CI**: Devtron orchestrates the full pipeline (build → scan → sign → push → deploy)
 - **GitOps**: ArgoCD deploys from Harbor, Kyverno blocks unsigned or unscanned images
 
@@ -126,140 +126,54 @@ Note: Harbor has a prior prompt (prompt 11) covering basic setup. This prompt go
 - Secret management in builds: OpenBao → External Secrets Operator injects build secrets into CI pod → Kaniko uses via BuildKit secret mounts
 - Build caching strategy: Kaniko cache repo in Harbor kaniko-cache project, cache invalidation on base image digest change
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
 ## Required Output Format
 
-Structure your response EXACTLY like this — it will be split into separate skill files for AI agents. Use `# Tool Name` as top-level headers so the output can be mechanically split:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# Docker/OCI Image Building
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[2-3 sentence description]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## Dockerfile Best Practices
-### Multi-Stage Builds
-[patterns and examples]
-### Base Image Selection
-[distroless vs Alpine vs UBI vs Chainguard trade-offs]
-### Layer Caching
-[ordering rules, RUN --mount=type=cache]
-### Security Hardening
-[USER, no root, secret handling]
-### Reproducibility
-[digest pinning, SOURCE_DATE_EPOCH]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (helix-stax-cp: 178.156.233.12, helix-stax-vps: 5.78.145.30), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## BuildKit
-### Key Features
-[secrets, SSH, cache mounts, bind mounts]
-### Registry Cache
-[--cache-from/--cache-to with Harbor]
-### Bake Files
-[multi-target build example]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## Kaniko
-### How It Works
-[architecture, no Docker socket]
-### Required Configuration
-[flags, auth, destination format]
-### Caching with Kaniko
-[--cache=true, cache repo in Harbor]
-### Devtron Integration
-[pipeline YAML, build step config]
-### Common Failures and Fixes
-[permission errors, auth errors, context issues]
-
-## OCI Image Spec
-### Manifest Structure
-[manifest JSON anatomy]
-### Multi-Arch Images
-[manifest list, platform targeting]
-
-## Supply Chain Security
-### Cosign Signing
-[keyless and key-based workflows, verify command]
-### SBOM with Syft
-[generation, attachment as OCI artifact]
-### Grype at Build Time
-[scanning before push, fail-on-critical]
-### SLSA Provenance
-[attestation basics]
-
-# Harbor
-
-## Overview
-[2-3 sentence description — complement to prompt 11, focus on build integration]
-
-## Robot Accounts for CI
-[per-pipeline accounts, push-only scope, credential rotation]
-
-## Trivy Scan-on-Push
-[configuration, scan results, blocking policy]
-
-## Tag Immutability
-[per-project config, dev vs prod difference]
-
-## Image Promotion Workflow
-### Dev -> Staging
-[gates, replication or re-tag]
-### Staging -> Prod
-[signature requirement, immutable tags]
-
-## Replication Policies
-[push vs pull, trigger types, tag filters]
-
-## Garbage Collection
-[scheduling, safety rules]
-
-## Webhooks
-[push and scan events, n8n integration]
-
-## Harbor API Reference
-[key endpoints for CI/CD automation]
-
-# Kyverno
-
-## Overview
-[2-3 sentence description]
-
-## Image Signing Policy
-[verifyImages ClusterPolicy example]
-
-## Registry Allowlist
-[restricting to internal registry]
-
-## System Namespace Exemptions
-[policy exception patterns]
-
-## Audit vs Enforce Mode
-[migration path]
-
-# NeuVector
-
-## Overview
-[2-3 sentence description]
-
-## Learning Mode
-[traffic baseline, process baseline]
-
-## Enforcement
-[behavioral anomaly detection]
-
-## Alerting Integration
-[webhook to n8n to Rocket.Chat]
-
-# Full Pipeline Reference
-
-## End-to-End Flow
-[git push -> running pod, all steps]
-
-## Image Tag Strategy
-[sha, latest, semver conventions]
-
-## Rollback Procedure
-[ArgoCD rollback with policy validation]
-
-## Promotion Gates
-[what must pass at each stage]
-```
-
-Be thorough, opinionated, and practical. Include actual CLI commands, actual config YAML snippets, and actual error messages. Do NOT give theory — give copy-paste-ready commands and configs for a Kaniko + Harbor + Kyverno stack on K3s. Assume no Docker daemon is available on nodes (K3s uses containerd).
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.

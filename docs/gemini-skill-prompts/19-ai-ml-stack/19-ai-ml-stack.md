@@ -193,121 +193,54 @@ Ollama, Open WebUI, and SearXNG form our self-hosted AI inference and search sta
 
 ---
 
+### Best Practices & Anti-Patterns
+- What are the top 10 best practices for this tool in production?
+- What are the most common mistakes and anti-patterns? Rank by severity (critical → low)
+- What configurations look correct but silently cause problems?
+- What defaults should NEVER be used in production?
+- What are the performance anti-patterns that waste resources?
+
+### Decision Matrix
+- When to use X vs Y (for every major decision point in this tool)
+- Clear criteria table: "If [condition], use [approach], because [reason]"
+- Trade-off analysis for each decision
+- What questions to ask before choosing an approach
+
+### Common Pitfalls
+- Mistakes that waste hours of debugging — with prevention
+- Version-specific gotchas for current releases
+- Integration pitfalls with other tools in our stack
+- Migration pitfalls when upgrading
+
 ## Required Output Format
 
-Structure your response EXACTLY like this — it will be split into three separate skill files for AI agents. Use `# Tool Name` as top-level headers so the output can be split:
+For each tool covered in this prompt, structure your output as THREE clearly separated sections using these exact headers:
 
-```markdown
-# Ollama
+### ## SKILL.md Content
+Core reference that an AI agent needs daily:
+- CLI commands with examples
+- Configuration patterns with copy-paste snippets
+- Troubleshooting decision tree (symptom → cause → fix)
+- Integration points with other tools in our stack
+- Keep under 500 lines — concise, actionable, no theory
 
-## Overview
-[2-3 sentences]
+### ## reference.md Content
+Deep specifications for complex tasks:
+- Full API/CLI reference (every flag, every option)
+- Complete configuration schema with all fields documented
+- Advanced patterns and edge cases
+- Performance tuning parameters
+- Security hardening checklist
+- Architecture diagrams (ASCII)
 
-## K3s Deployment
-[Helm values, manifests, env vars]
+### ## examples.md Content
+Copy-paste-ready examples specific to Helix Stax:
+- Real configurations using our IPs (178.156.233.12, 138.201.131.157), domains (helixstax.com, helixstax.net), and service names
+- Annotated YAML/JSON manifests
+- Before/after troubleshooting scenarios
+- Step-by-step runbooks for common operations
+- Integration examples with our specific stack (K3s, Traefik, Zitadel, CloudNativePG, etc.)
 
-## Model Management
-### Model Selection Guide
-[table: model name, size, RAM needed, best for, quantization]
-### CLI Reference
-[pull, list, rm, show commands with examples]
-### Modelfile Reference
-[syntax, example for Helix Stax persona]
+Use `# Tool Name` as top-level headers to separate each tool's output for splitting into separate skill directories.
 
-## REST API Reference
-### /api/generate
-[parameters, example curl, n8n body structure]
-### /api/chat
-[parameters, example]
-### /api/embeddings
-[parameters, example, response structure]
-### Other Endpoints
-[tags, pull, show]
-
-## Resource Management
-[memory limits, concurrency, env vars table]
-
-## Prometheus Metrics
-[scrape config, key metrics]
-
-## Troubleshooting
-[OOM, slow inference, API errors]
-
-## Gotchas
-[CPU-only limitations, model loading time, keep_alive]
-
----
-
-# Open WebUI
-
-## Overview
-[2-3 sentences]
-
-## K3s Deployment
-[Helm values, env vars, PVC, PostgreSQL config]
-
-## Zitadel OIDC Integration
-[env vars, Zitadel client config, redirect URIs]
-
-## User Management
-[roles, API keys, signup settings]
-
-## RAG Pipeline
-### Document Ingestion
-[upload flow, chunk config]
-### Embedding Configuration
-[embedding model selection, pgvector connection]
-### Retrieval
-[query flow, relevance thresholds]
-
-## SearXNG Integration
-[how to configure, trigger conditions]
-
-## API Reference
-[chat completions endpoint, file upload, auth]
-
-## Admin Configuration
-[model presets, tools, pipelines]
-
-## Troubleshooting
-[Ollama connection, RAG issues, OIDC errors]
-
-## Gotchas
-[SQLite vs PostgreSQL migration, pgvector extension requirement]
-
----
-
-# SearXNG
-
-## Overview
-[2-3 sentences]
-
-## K3s Deployment
-[manifests, ConfigMap pattern, secret_key, resources]
-
-## Configuration Reference
-### settings.yml
-[annotated example with our recommended values]
-### Engine Selection
-[table: engine, category, enable/disable, reason]
-
-## API Reference
-[endpoint, parameters, response structure, example curl]
-
-## n8n Integration
-[HTTP Request node config, response parsing]
-
-## Open WebUI Integration
-[configuration steps, internal URL]
-
-## Privacy and Security
-[cluster-internal only, logging, image proxy]
-
-## Troubleshooting
-[rate limits, secret_key errors, engine timeouts]
-
-## Gotchas
-[stateless — always use ConfigMap, secret_key must persist]
-```
-
-Be thorough, opinionated, and practical. Include actual CLI commands, actual Kubernetes manifests or Helm values, actual curl examples, and actual env var names. Do NOT give me theory — give me copy-paste-ready configs for a CPU-only K3s cluster on Hetzner with Zitadel OIDC, CloudNativePG PostgreSQL with pgvector, and Traefik ingress.
+Be thorough, opinionated, and practical. Include actual commands, actual configs, and actual error messages. Do NOT give theory — give copy-paste-ready content for a K3s cluster on Hetzner behind Cloudflare.
