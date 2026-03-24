@@ -38,6 +38,7 @@ fetch_or_fail() {
 
 export TF_VAR_hcloud_token=$(fetch_or_fail HETZNER_CLOUD_TOKEN)
 export TF_VAR_cloudflare_api_token=$(fetch_or_fail CLOUDFLARE_API_TOKEN)
+export TF_VAR_cloudflare_account_id=$(fetch_or_fail CLOUDFLARE_ACCOUNT_ID)
 export TF_VAR_cloudflare_zone_id_com=$(fetch_or_fail CLOUDFLARE_ZONE_ID_COM)
 export TF_VAR_cloudflare_zone_id_net=$(fetch_or_fail CLOUDFLARE_ZONE_ID_NET)
 

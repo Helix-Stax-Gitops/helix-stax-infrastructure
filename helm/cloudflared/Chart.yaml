@@ -1,0 +1,10 @@
+# ============================================================
+# cloudflared — Cloudflare Tunnel connector for K3s
+# Routes *.helixstax.net traffic through Cloudflare to Traefik
+# ============================================================
+apiVersion: v2
+name: cloudflared
+description: Cloudflare Tunnel connector — routes external traffic to in-cluster Traefik
+type: application
+version: 0.1.0
+appVersion: "2024.12.2"

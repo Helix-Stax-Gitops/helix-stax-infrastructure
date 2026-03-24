@@ -1,0 +1,56 @@
+# ============================================================
+# cloudflared — Helm values
+# Deployed as K3s Deployment, connects outbound to Cloudflare Tunnel
+# No inbound ports required — cloudflared dials out to Cloudflare edge
+# ============================================================
+
+replicaCount: 2
+
+image:
+  repository: cloudflare/cloudflared
+  tag: "2024.12.2"
+  pullPolicy: IfNotPresent
+
+# -- Tunnel token from OpenTofu output --
+# Create the secret before deploying:
+#   tofu output -raw tunnel_token | kubectl create secret generic \
+#     cloudflared-tunnel-token -n cloudflared --from-literal=token=-
+tunnel:
+  existingSecret: cloudflared-tunnel-token
+  secretKey: token
+
+# -- Tunnel ingress config --
+# All traffic routes to Traefik as the single ingress point.
+# Traefik then applies IngressRoute rules per service.
+config:
+  tunnel: helix-hub-tunnel
+  ingress:
+    - hostname: "*.helixstax.net"
+      service: http://traefik.traefik.svc.cluster.local:80
+    - hostname: "helixstax.net"
+      service: http://traefik.traefik.svc.cluster.local:80
+    # Catch-all — required by cloudflared (must be last)
+    - service: http_status:404
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# -- Service account --
+serviceAccount:
+  create: true
+  name: cloudflared
+
+# -- Pod settings --
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- Pod disruption budget --
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

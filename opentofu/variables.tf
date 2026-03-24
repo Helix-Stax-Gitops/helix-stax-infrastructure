@@ -16,20 +16,24 @@ variable "cloudflare_api_token" {
   sensitive   = true
 }
 
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID (required for tunnel creation)"
+  type        = string
+  sensitive   = true
+}
+
 # ---- Cloudflare Zone IDs ------------------------------------
 
 variable "cloudflare_zone_id_com" {
   description = "Cloudflare zone ID for helixstax.com"
   type        = string
   sensitive   = true
-  default     = "" # Set when CF resources are added
 }
 
 variable "cloudflare_zone_id_net" {
   description = "Cloudflare zone ID for helixstax.net"
   type        = string
   sensitive   = true
-  default     = "" # Set when CF resources are added
 }
 
 # ---- SSH & Access -------------------------------------------

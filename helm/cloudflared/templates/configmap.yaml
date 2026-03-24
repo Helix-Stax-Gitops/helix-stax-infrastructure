@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  labels:
+    {{- include "cloudflared.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    tunnel: {{ .Values.config.tunnel }}
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    ingress:
+    {{- range .Values.config.ingress }}
+    {{- if .hostname }}
+      - hostname: {{ .hostname | quote }}
+        service: {{ .service }}
+    {{- else }}
+      - service: {{ .service }}
+    {{- end }}
+    {{- end }}

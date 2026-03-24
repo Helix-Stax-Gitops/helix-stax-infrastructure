@@ -6,6 +6,7 @@
 # scripts/tofu-apply.sh via TF_VAR_* fetched from Cloudflare vault:
 #   TF_VAR_hcloud_token
 #   TF_VAR_cloudflare_api_token
+#   TF_VAR_cloudflare_account_id
 #   TF_VAR_cloudflare_zone_id_com
 #   TF_VAR_cloudflare_zone_id_net
 #   TF_VAR_ssh_public_key

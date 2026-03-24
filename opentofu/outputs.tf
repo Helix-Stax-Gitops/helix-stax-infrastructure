@@ -52,3 +52,16 @@ output "test_server_ipv6" {
   description = "Public IPv6 of the temporary test server"
   value       = module.test_server.server_ipv6
 }
+
+# ---- Cloudflare Tunnel --------------------------------------
+
+output "tunnel_id" {
+  description = "Cloudflare Tunnel ID for helix-hub-tunnel"
+  value       = cloudflare_zero_trust_tunnel_cloudflared.helix_tunnel.id
+}
+
+output "tunnel_token" {
+  description = "Cloudflare Tunnel token — inject into K8s secret for cloudflared"
+  value       = cloudflare_zero_trust_tunnel_cloudflared.helix_tunnel.tunnel_token
+  sensitive   = true
+}

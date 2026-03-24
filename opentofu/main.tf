@@ -77,3 +77,39 @@ module "test_server" {
     env  = "staging"
   }
 }
+
+# ============================================================
+# Cloudflare Tunnel
+# ============================================================
+
+# Tunnel secret — 32-byte random value for tunnel authentication
+resource "random_id" "tunnel_secret" {
+  byte_length = 32
+}
+
+# Zero Trust tunnel — cloudflared connectors in K3s connect to this
+resource "cloudflare_zero_trust_tunnel_cloudflared" "helix_tunnel" {
+  account_id = var.cloudflare_account_id
+  name       = "helix-hub-tunnel"
+  secret     = random_id.tunnel_secret.b64_std
+}
+
+# ---- DNS Records pointing *.helixstax.net to tunnel --------
+
+resource "cloudflare_record" "tunnel_wildcard_net" {
+  zone_id = var.cloudflare_zone_id_net
+  name    = "*"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.helix_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  proxied = true
+  comment = "Managed by OpenTofu — wildcard to Cloudflare Tunnel"
+}
+
+resource "cloudflare_record" "tunnel_root_net" {
+  zone_id = var.cloudflare_zone_id_net
+  name    = "@"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.helix_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  proxied = true
+  comment = "Managed by OpenTofu — root to Cloudflare Tunnel"
+}
