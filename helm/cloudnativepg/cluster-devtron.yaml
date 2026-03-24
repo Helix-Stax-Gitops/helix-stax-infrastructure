@@ -1,0 +1,67 @@
+# CloudNativePG PostgreSQL Cluster for Devtron
+# Namespace: database
+# Single instance — sized for 4vCPU/8GB single-node k3s cluster
+# PostgreSQL version: 18.1
+#
+# Auto-created secrets (namespace: database):
+#   helix-pg-app        — app credentials (user=devtron, db=devtron)
+#   helix-pg-ca         — CA certificate
+#   helix-pg-replication — replication TLS cert
+#   helix-pg-server     — server TLS cert
+#
+# Connection endpoints (all ClusterIP, port 5432):
+#   helix-pg-rw.database.svc  — read-write (primary)
+#   helix-pg-ro.database.svc  — read-only
+#   helix-pg-r.database.svc   — any instance
+#
+# Devtron DATABASE_URL (from helix-pg-app secret .data.uri):
+#   postgresql://devtron:<password>@helix-pg-rw.database:5432/devtron
+#
+# Apply with:
+#   kubectl apply -f cluster-devtron.yaml
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: helix-pg
+  namespace: database
+  labels:
+    app: helix-pg
+    environment: production
+    managed-by: cloudnativepg
+spec:
+  instances: 1
+
+  storage:
+    size: 10Gi
+    storageClass: local-path
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "768MB"
+      maintenance_work_mem: "64MB"
+      checkpoint_completion_target: "0.9"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "4MB"
+      min_wal_size: "1GB"
+      max_wal_size: "4GB"
+
+  bootstrap:
+    initdb:
+      database: devtron
+      owner: devtron
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      memory: 512Mi

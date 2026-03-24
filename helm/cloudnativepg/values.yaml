@@ -1,0 +1,27 @@
+# CloudNativePG Operator Helm Values
+# Release: cnpg-operator
+# Namespace: cnpg-system
+# Chart: cnpg/cloudnative-pg
+#
+# Single-node k3s cluster (helix-stax-cp, AlmaLinux 9.7)
+# Resources sized conservatively for 4vCPU/8GB node
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/cloudnative-pg/cloudnative-pg
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 100Mi
+  limits:
+    memory: 256Mi
+
+# Operator watches all namespaces by default
+# Cluster resource will be created in 'database' namespace
+
+monitoring:
+  # Enable PodMonitor for Prometheus scraping (kube-prometheus-stack is installed)
+  podMonitorEnabled: true
