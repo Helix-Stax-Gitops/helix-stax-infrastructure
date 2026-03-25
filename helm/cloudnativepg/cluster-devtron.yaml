@@ -61,7 +61,7 @@ spec:
 
   affinity:
     nodeSelector:
-      workload: database
+      workload: platform
 
   resources:
     requests:

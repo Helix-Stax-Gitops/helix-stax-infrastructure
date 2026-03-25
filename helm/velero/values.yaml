@@ -22,8 +22,9 @@ resources:
     cpu: 250m
     memory: 256Mi
 
+# Velero server runs on forge; NodeAgent DaemonSet runs on all nodes automatically
 nodeSelector:
-  workload: general
+  workload: forge
 
 # Credentials for MinIO S3-compatible backend
 # Create before install:
@@ -43,7 +44,7 @@ configuration:
       config:
         region: us-east-1         # MinIO ignores region but requires a value
         s3ForcePathStyle: "true"   # Required for MinIO S3-compatible API
-        s3Url: http://minio.storage.svc.cluster.local:9000
+        s3Url: http://minio.production.svc.cluster.local:9000
 
   # Volume snapshot location — filesystem backup via kopia (no CSI snapshots on k3s/local-path)
   volumeSnapshotLocation:

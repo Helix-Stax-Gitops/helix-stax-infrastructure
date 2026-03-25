@@ -9,7 +9,7 @@
 replicaCount: 1
 
 nodeSelector:
-  workload: database
+  workload: platform
 
 image:
   repository: ghcr.io/cloudnative-pg/cloudnative-pg
