@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-25
+
+### Added
+
+- Devtron global config completed: 11 chart repositories, 2 environments (production, staging), GitHub git account, helix-platform project
+- Helm values files created for 7 services: Zitadel, Rocket.Chat, MinIO, Harbor, Ollama, Open WebUI, Velero
+- Valkey Helm values added (`helm/valkey/values.yaml`) — standalone, auth disabled, 1Gi local-path
+- `helix-stax-test` (178.156.172.47, CPX11) joined K3s cluster as worker node with labels `node-role=worker`, `workload=general`
+- Ansible `k3s_agent` role created: idempotent, 6-phase install (preflight → SELinux + k3s-selinux → agent install → firewall → readiness wait → install marker)
+- CP firewall updated for multi-node cluster: Flannel VXLAN (UDP 8472), kubelet API (TCP 10250), pod CIDR (10.42.0.0/16), service CIDR (10.43.0.0/16) opened in trusted zone
+- Ansible inventory updated: `helix-stax-test` promoted to `prod_workers` group; `helix-stax-vps` marked blocked (unreachable) with comment
+- `docs/cluster-topology.md` — node inventory, roles, IPs, network diagram, firewall rules, workload placement
+- `docs/devtron-config.md` — Devtron global config state, chart repos, environments, deployment workflow, service order
+- `docs/helm-services.md` — all Helm services documented with values summary, secrets required, dependencies, deployment order
+
+### Changed
+
+- `ansible/inventory/hosts.ini`: helix-stax-test moved from `[test]` to `[prod_workers]`; helix-stax-vps blocked with note
+
 ## [0.2.0] - 2026-03-24
 
 ### Added
