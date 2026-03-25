@@ -91,7 +91,7 @@ extraManifests:
       name: zitadel
     spec:
       entryPoints:
-        - websecure
+        - web
       routes:
         - match: "Host(`zitadel.helixstax.net`)"
           kind: Rule
