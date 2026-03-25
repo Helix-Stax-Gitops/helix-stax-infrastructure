@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: disk-usage-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: disk
+      rules:
+        - alert: DiskSpaceLow
+          expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk space low on {{ $labels.instance }}"
+            description: "Less than 15% disk space remaining on {{ $labels.instance }}"
+        - alert: DiskSpaceCritical
+          expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.05
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "CRITICAL: Disk space on {{ $labels.instance }}"
+            description: "Less than 5% disk space remaining on {{ $labels.instance }}"

@@ -1,0 +1,39 @@
+---
+# =============================================================================
+# Role: dnf_automatic
+# Purpose: Install and configure dnf-automatic for unattended security updates.
+# Idempotent: safe to re-run. Timer fires daily at a randomized time.
+# =============================================================================
+
+- name: Install dnf-automatic
+  ansible.builtin.dnf:
+    name: dnf-automatic
+    state: present
+
+- name: Set upgrade_type to security
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/automatic.conf
+    regexp: '^upgrade_type\s*='
+    line: 'upgrade_type = security'
+    state: present
+
+- name: Enable apply_updates
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/automatic.conf
+    regexp: '^apply_updates\s*='
+    line: 'apply_updates = yes'
+    state: present
+
+- name: Enable and start dnf-automatic.timer
+  ansible.builtin.systemd:
+    name: dnf-automatic.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Verify dnf-automatic.timer is active
+  ansible.builtin.command:
+    cmd: systemctl is-active dnf-automatic.timer
+  register: dnf_automatic_timer_status
+  changed_when: false
+  failed_when: dnf_automatic_timer_status.stdout != 'active'

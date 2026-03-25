@@ -1,0 +1,10 @@
+---
+# dnf_automatic role defaults
+# No variables required — all settings are hardcoded for security-only updates.
+# Override in group_vars or host_vars if needed.
+
+# upgrade_type: security | default | minimal
+dnf_automatic_upgrade_type: security
+
+# apply_updates: yes | no
+dnf_automatic_apply_updates: "yes"
