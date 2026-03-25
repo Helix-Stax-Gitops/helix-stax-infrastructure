@@ -8,6 +8,9 @@ replicaCount: 1
 image:
   pullPolicy: IfNotPresent
 
+nodeSelector:
+  workload: general
+
 # Rocket.Chat application settings
 host: rocketchat.helixstax.net
 

@@ -69,6 +69,8 @@ persistence:
       size: 2Gi
 
 portal:
+  nodeSelector:
+    workload: general
   resources:
     requests:
       cpu: 50m
@@ -78,6 +80,8 @@ portal:
       memory: 128Mi
 
 core:
+  nodeSelector:
+    workload: general
   resources:
     requests:
       cpu: 100m
@@ -87,6 +91,8 @@ core:
       memory: 256Mi
 
 jobservice:
+  nodeSelector:
+    workload: general
   resources:
     requests:
       cpu: 50m
@@ -96,6 +102,8 @@ jobservice:
       memory: 256Mi
 
 registry:
+  nodeSelector:
+    workload: general
   registry:
     resources:
       requests:
@@ -115,6 +123,8 @@ registry:
 
 trivy:
   enabled: true
+  nodeSelector:
+    workload: general
   resources:
     requests:
       cpu: 100m

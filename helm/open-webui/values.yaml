@@ -41,6 +41,9 @@ ingress:
 #   Admin > Settings > Auth > OpenID Connect
 #   Client ID / Secret from Zitadel application config
 
+nodeSelector:
+  workload: ai
+
 # Pipelines — disabled until needed
 pipelines:
   enabled: false

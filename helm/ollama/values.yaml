@@ -55,4 +55,5 @@ readinessProbe:
   timeoutSeconds: 5
   failureThreshold: 3
 
-# No affinity rules — single-node cluster
+nodeSelector:
+  workload: ai

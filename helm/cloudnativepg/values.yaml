@@ -8,6 +8,9 @@
 
 replicaCount: 1
 
+nodeSelector:
+  workload: database
+
 image:
   repository: ghcr.io/cloudnative-pg/cloudnative-pg
   pullPolicy: IfNotPresent

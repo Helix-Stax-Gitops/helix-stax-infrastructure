@@ -9,6 +9,8 @@ auth:
   enabled: false
 
 primary:
+  nodeSelector:
+    workload: database
   resources:
     requests:
       cpu: 100m

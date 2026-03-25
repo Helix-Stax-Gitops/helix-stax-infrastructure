@@ -58,6 +58,9 @@ replicaCount: 1
 image:
   pullPolicy: IfNotPresent
 
+nodeSelector:
+  workload: general
+
 resources:
   requests:
     cpu: 200m

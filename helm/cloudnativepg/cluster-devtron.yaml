@@ -59,6 +59,10 @@ spec:
       localeCType: C
       localeCollate: C
 
+  affinity:
+    nodeSelector:
+      workload: database
+
   resources:
     requests:
       cpu: 200m
