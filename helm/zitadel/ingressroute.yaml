@@ -1,3 +1,5 @@
+# DEPRECATED: IngressRoute is now managed via Helm extraManifests in values.yaml
+# This file is kept as reference only. Do not apply separately.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
