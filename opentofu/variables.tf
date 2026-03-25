@@ -100,16 +100,7 @@ variable "vps_location" {
   default     = "hil"
 }
 
-# ---- Test Server (helix-stax-test) --------------------------
-
-variable "test_server_type" {
-  description = "Server type for the temporary test server"
-  type        = string
-  default     = "cpx11" # Cheapest x86 — $4.99/mo
-}
-
-variable "test_location" {
-  description = "Hetzner datacenter location for the test server"
-  type        = string
-  default     = "ash"
-}
+# Note: forge (helix-stax-ai, 138.201.131.157) is a Hetzner Robot dedicated
+# server and is NOT managed by OpenTofu. Robot servers are not available via
+# the Hetzner Cloud API. forge is provisioned and configured exclusively
+# via Ansible (hardening, K3s agent join, workload labels).

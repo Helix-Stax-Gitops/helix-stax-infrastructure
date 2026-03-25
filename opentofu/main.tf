@@ -1,6 +1,17 @@
 # ============================================================
 # Helix Stax Infrastructure — Root Module
-# Servers: helix-stax-cp (CP), helix-stax-vps, helix-stax-test
+#
+# Managed nodes (Hetzner Cloud, OpenTofu):
+#   heart  — helix-stax-cp  (cpx31, 178.156.233.12)  Control plane + platform + identity
+#   vault  — helix-stax-vps (cpx31,   5.78.145.30)   Worker, role TBD — kept for now
+#
+# Unmanaged node (Hetzner Robot, Ansible only):
+#   forge  — helix-stax-ai  (138.201.131.157)         Robot dedicated server (i7-7700/64GB)
+#            NOT provisioned by OpenTofu — managed exclusively via Ansible.
+#            Robot servers cannot be created/destroyed via Hetzner Cloud API.
+#
+# Decommissioned:
+#   edge   — helix-stax-test (cpx11, 178.156.172.47)  Removed — decommissioned
 #
 # Firewall strategy:
 #   - Hetzner firewall removed — redundant third layer
@@ -11,6 +22,7 @@
 
 locals {
   # Known server IPs — used for Ansible inventory generation
+  # forge (138.201.131.157) is managed by Ansible only — not tracked here
   cp_ip  = "178.156.233.12"
   vps_ip = "5.78.145.30"
 }
@@ -33,6 +45,7 @@ module "cp_server" {
   labels = {
     role = "control-plane"
     env  = "production"
+    name = "heart"
   }
 }
 
@@ -52,29 +65,9 @@ module "vps_server" {
   })
 
   labels = {
-    role = "services"
+    role = "worker"
     env  = "production"
-  }
-}
-
-# ---- Test Server (temporary validation) ----------------------
-module "test_server" {
-  source = "./modules/hetzner-server"
-
-  name        = "helix-stax-test"
-  server_type = var.test_server_type
-  image       = "alma-9"
-  location    = var.test_location
-  ssh_key_ids = var.ssh_key_ids
-
-  user_data = templatefile("${path.module}/cloud-init/alma9-init.yaml.tpl", {
-    admin_user     = var.admin_user
-    ssh_public_key = var.ssh_public_key
-  })
-
-  labels = {
-    role = "test"
-    env  = "staging"
+    name = "vault"
   }
 }
 
