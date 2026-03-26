@@ -28,7 +28,7 @@ HELM_DIR="$(dirname "$SCRIPT_DIR")/helm/monitoring"
 CP_HOST="178.156.233.12"
 CP_PORT="2222"
 CP_USER="wakeem"
-CP_SSH="ssh -i ~/.ssh/id_ed25519 -p $CP_PORT $CP_USER@$CP_HOST"
+CP_SSH="ssh -i ~/.ssh/helixstax_key -p $CP_PORT $CP_USER@$CP_HOST"
 KUBECTL="sudo /usr/local/bin/k3s kubectl"
 
 ZITADEL_URL="https://zitadel.helixstax.net"
@@ -112,22 +112,21 @@ helm_upgrade() {
     echo "==> Step 3: Copying Helm values to CP and running helm upgrade..."
 
     # Copy updated values file to CP
-    scp -P "$CP_PORT" -i ~/.ssh/id_ed25519 \
+    scp -P "$CP_PORT" -i ~/.ssh/helixstax_key \
         "$HELM_VALUES" \
         "$CP_USER@$CP_HOST:/tmp/values-prometheus-stack.yaml"
 
     $CP_SSH bash -s << 'EOF'
 set -euo pipefail
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-helm upgrade monitoring prometheus-community/kube-prometheus-stack \
+sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm upgrade monitoring prometheus-community/kube-prometheus-stack \
     -n monitoring \
     -f /tmp/values-prometheus-stack.yaml \
     --wait \
     --timeout 5m
 
 echo "Helm upgrade complete"
-helm status monitoring -n monitoring | grep -E "STATUS|DEPLOYED|LAST DEPLOYED"
+sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm status monitoring -n monitoring | grep -E "STATUS|DEPLOYED|LAST DEPLOYED"
 rm -f /tmp/values-prometheus-stack.yaml
 EOF
 }
@@ -136,7 +135,7 @@ EOF
 apply_ingressroute() {
     echo "==> Step 4: Applying Grafana IngressRoute..."
 
-    scp -P "$CP_PORT" -i ~/.ssh/id_ed25519 \
+    scp -P "$CP_PORT" -i ~/.ssh/helixstax_key \
         "$INGRESSROUTE" \
         "$CP_USER@$CP_HOST:/tmp/grafana-ingressroute.yaml"
 
