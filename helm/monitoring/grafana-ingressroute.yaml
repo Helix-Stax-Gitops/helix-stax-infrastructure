@@ -12,6 +12,22 @@ spec:
   routes:
     - match: Host(`grafana.helixstax.net`)
       kind: Rule
+      middlewares:
+        - name: grafana-rate-limit
       services:
         - name: monitoring-grafana
           port: 80  # Grafana is HTTP/1.1 — no h2c
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: grafana-rate-limit
+  namespace: monitoring
+spec:
+  rateLimit:
+    average: 20        # 20 requests per second average
+    burst: 50          # allow bursts up to 50
+    period: 1s
+    sourceCriterion:
+      ipStrategy:
+        depth: 1       # use first X-Forwarded-For (Cloudflare client IP)
