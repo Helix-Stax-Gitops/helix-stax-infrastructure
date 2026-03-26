@@ -29,17 +29,15 @@ grafana:
   #     -n monitoring \
   #     --from-literal=client-id="<CLIENT_ID>" \
   #     --from-literal=client-secret="<CLIENT_SECRET>"
-  env:
+  envValueFrom:
     GF_AUTH_GENERIC_OAUTH_CLIENT_ID:
-      valueFrom:
-        secretKeyRef:
-          name: grafana-zitadel-oauth
-          key: client-id
+      secretKeyRef:
+        name: grafana-zitadel-oauth
+        key: client-id
     GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
-      valueFrom:
-        secretKeyRef:
-          name: grafana-zitadel-oauth
-          key: client-secret
+      secretKeyRef:
+        name: grafana-zitadel-oauth
+        key: client-secret
 
   grafana.ini:
     server:
