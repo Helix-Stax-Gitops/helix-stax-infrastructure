@@ -14,6 +14,21 @@
 zitadel:
   masterkeySecretName: zitadel-masterkey
 
+  # zitadel-cache-config is a pre-created K8s Secret in the identity namespace.
+  # It contains a `config-yaml` key with the Caches configuration including the
+  # authenticated Redis URL (redis://:password@valkey-primary.database.svc.cluster.local:6379).
+  # This secret is loaded by Zitadel as a second config file that overrides configmapConfig.
+  # The password never appears in the ConfigMap. Pre-create with:
+  #   kubectl create secret generic zitadel-cache-config -n identity \
+  #     --from-literal=config-yaml="Caches: ..."
+  #
+  # NOTE: LastUsage is intentionally omitted. There is a known bug in Zitadel
+  # v2.66.x-v2.67.x (and related v4.x releases) where setting LastUsage triggers
+  # a Lua script type mismatch in the Redis connector, immediately opening the
+  # circuit breaker. See: https://github.com/zitadel/zitadel/issues/9140
+  # Until confirmed fixed in our deployed version, use MaxAge-only expiry.
+  configSecretName: zitadel-cache-config
+
   configmapConfig:
     ExternalDomain: zitadel.helixstax.net
     ExternalPort: 443

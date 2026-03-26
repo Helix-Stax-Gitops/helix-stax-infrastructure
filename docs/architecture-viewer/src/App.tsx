@@ -22,18 +22,20 @@ const nodeTypes = { custom: CustomNode }
 
 const LAYER_LABELS: Record<string, string> = {
   edge:     'Layer 1 — Edge (Cloudflare)',
-  cluster:  'Layer 2 — Kubernetes Cluster (K3s)',
-  platform: 'Layer 3 — Platform Services',
+  cluster:  'Layer 2 — Kubernetes Cluster (K3s · 4 nodes)',
+  platform: 'Layer 3 — Platform Services (deployed)',
   app:      'Layer 4 — Applications',
+  planned:  'Layer 4 — Applications (planned)',
   external: 'Layer 5 — External Providers',
 }
 
 const LAYER_Y: Record<string, number> = {
   edge:     60,
-  cluster:  240,
-  platform: 420,
-  app:      660,
-  external: 900,
+  cluster:  270,
+  platform: 480,
+  app:      720,
+  planned:  720,
+  external: 960,
 }
 
 const LAYER_TEAL  = 'rgba(82,168,130,0.06)'
@@ -43,12 +45,13 @@ const LAYER_DIM   = 'rgba(255,255,255,0.02)'
 function layerBg(layer: string): string {
   if (layer === 'edge' || layer === 'platform') return LAYER_TEAL
   if (layer === 'cluster' || layer === 'app')   return LAYER_AMBER
+  if (layer === 'planned')                       return 'rgba(74,85,104,0.04)'
   return LAYER_DIM
 }
 
 function LayerBackground({ layer }: { layer: string }) {
   const y    = LAYER_Y[layer] ?? 0
-  const h    = layer === 'platform' ? 200 : 180
+  const h    = layer === 'platform' ? 210 : (layer === 'cluster' ? 200 : 180)
   return (
     <div
       aria-hidden="true"
@@ -76,7 +79,7 @@ function DetailPanel({ node, onClose }: DetailPanelProps) {
   const d = node.data
   const layerColors: Record<string, string> = {
     edge: '#52A882', cluster: '#C4975A', platform: '#52A882',
-    app: '#C4975A', external: '#4a5568',
+    app: '#C4975A', planned: '#4a5568', external: '#4a5568',
   }
   const color = layerColors[d.layer] ?? '#52A882'
 
@@ -154,7 +157,7 @@ export default function App() {
         <span className="arch-header-title">Helix Stax</span>
         <span style={{ color: '#30363d', fontSize: 14 }}>|</span>
         <span style={{ fontSize: 13, color: '#8b949e' }}>Infrastructure Architecture</span>
-        <span className="arch-header-subtitle">K3s on Hetzner · Cloudflare Edge · Zitadel OIDC</span>
+        <span className="arch-header-subtitle">4-node K3s · Hetzner · Cloudflare Edge · Zitadel OIDC · HIPAA 87.5%</span>
       </header>
 
       {/* Flow canvas — offset by header height */}
@@ -191,14 +194,14 @@ export default function App() {
               const layer = (n.data as NodeData)?.layer ?? 'edge'
               if (layer === 'edge' || layer === 'platform') return '#52A882'
               if (layer === 'cluster' || layer === 'app')   return '#C4975A'
-              return '#4a5568'
+              return '#4a5568'  // planned + external
             }}
             maskColor="rgba(13,17,23,0.7)"
             aria-label="Minimap"
           />
 
           {/* Layer background bands — rendered as SVG foreign objects via absolute divs */}
-          {['edge', 'cluster', 'platform', 'app', 'external'].map((l) => (
+          {['edge', 'cluster', 'platform', 'app', 'planned', 'external'].map((l) => (
             <LayerBackground key={l} layer={l} />
           ))}
         </ReactFlow>

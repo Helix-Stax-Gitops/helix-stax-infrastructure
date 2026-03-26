@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 
-export interface NodeData {
+export interface NodeData extends Record<string, unknown> {
   label: string
   description: string
   layer: string
@@ -20,17 +20,19 @@ const layerColors: Record<string, string> = {
   cluster:  '#C4975A',
   platform: '#52A882',
   app:      '#C4975A',
+  planned:  '#4a5568',
   external: '#4a5568',
 }
 
 function CustomNode({ data, selected }: CustomNodeProps) {
+  const isPlanned = data.layer === 'planned'
   const accent = layerColors[data.layer] ?? '#52A882'
 
   return (
     <div
       style={{
-        background: '#1a2332',
-        border: `1px solid ${selected ? accent : '#30363d'}`,
+        background: isPlanned ? '#111820' : '#1a2332',
+        border: `1px solid ${selected ? accent : (isPlanned ? '#2d3748' : '#30363d')}`,
         borderLeft: `3px solid ${accent}`,
         borderRadius: 8,
         padding: '10px 14px',
@@ -42,6 +44,7 @@ function CustomNode({ data, selected }: CustomNodeProps) {
           : '0 2px 8px rgba(0,0,0,0.3)',
         transition: 'box-shadow 0.15s, border-color 0.15s',
         position: 'relative',
+        opacity: isPlanned ? 0.7 : 1,
       }}
       data-testid={`node-${data.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
     >
@@ -62,16 +65,36 @@ function CustomNode({ data, selected }: CustomNodeProps) {
             color: accent,
             letterSpacing: '0.01em',
             lineHeight: 1.2,
+            flex: 1,
           }}
         >
           {data.label}
         </span>
+        {isPlanned && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 600,
+              color: '#4a5568',
+              background: '#1e2733',
+              border: '1px solid #2d3748',
+              borderRadius: 3,
+              padding: '1px 4px',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              flexShrink: 0,
+            }}
+            aria-label="planned"
+          >
+            planned
+          </span>
+        )}
       </div>
 
       <p
         style={{
           fontSize: 10,
-          color: '#8b949e',
+          color: isPlanned ? '#6b7280' : '#8b949e',
           lineHeight: 1.4,
           margin: 0,
         }}
