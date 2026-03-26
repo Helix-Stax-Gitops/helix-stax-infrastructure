@@ -58,6 +58,7 @@ grafana:
       # Role mapping: groups claim is injected by Zitadel addGroupsClaim Action
       # Zitadel project roles: platform-admin -> GrafanaAdmin, platform-engineer -> Editor, others -> Viewer
       role_attribute_path: "contains(groups[*], 'platform-admin') && 'GrafanaAdmin' || contains(groups[*], 'platform-engineer') && 'Editor' || 'Viewer'"
+      allow_assign_grafana_admin: true
 
 prometheus:
   prometheusSpec:
