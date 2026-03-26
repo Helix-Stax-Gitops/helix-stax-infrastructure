@@ -1,0 +1,49 @@
+name: Feature Request
+description: Propose a new infrastructure capability or service
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What do you want to add or change?
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Business Justification
+      description: Why is this needed? What problem does it solve? What is the impact if not done?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this is done? List specific, testable criteria.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other approaches did you consider and why were they rejected?
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - high (blocks other work or compliance)
+        - normal (planned improvement)
+        - low (nice to have)
+    validations:
+      required: true

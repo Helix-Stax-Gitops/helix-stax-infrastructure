@@ -1,0 +1,9 @@
+# Global owner - all files require review
+* @HelixStax
+
+# Infrastructure-specific ownership
+helm/ @HelixStax
+opentofu/ @HelixStax
+ansible/ @HelixStax
+k8s/ @HelixStax
+scripts/ @HelixStax

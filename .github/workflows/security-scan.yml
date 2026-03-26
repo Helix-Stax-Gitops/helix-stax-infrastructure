@@ -1,0 +1,95 @@
+name: Security Scan
+
+on:
+  schedule:
+    # Run every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "helm/**"
+      - "k8s/**"
+      - "opentofu/**"
+
+jobs:
+  trivy-scan:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: "3.14.0"
+
+      - name: Render Helm charts for scanning
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/rendered
+          find helm/ -name "Chart.yaml" -exec dirname {} \; | while read chart; do
+            name=$(basename "$chart")
+            echo "Rendering: $chart"
+            helm template "$name" "$chart" > "/tmp/rendered/${name}.yaml" 2>/dev/null || true
+          done
+
+      - name: Trivy scan - rendered manifests
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "config"
+          scan-ref: "/tmp/rendered"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  trivy-k8s-manifests:
+    name: Trivy K8s Manifest Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trivy scan - k8s directory
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "config"
+          scan-ref: "k8s/"
+          format: "table"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "1"
+        continue-on-error: true
+
+  dependabot-check:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: "3.14.0"
+
+      - name: Check for outdated Helm chart dependencies
+        run: |
+          set -euo pipefail
+          find helm/ -name "Chart.yaml" -exec dirname {} \; | while read chart; do
+            if [ -f "$chart/Chart.lock" ]; then
+              echo "Checking dependencies for: $chart"
+              helm dependency update "$chart" --skip-refresh || true
+            fi
+          done

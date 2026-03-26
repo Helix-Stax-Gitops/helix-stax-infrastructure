@@ -1,0 +1,85 @@
+name: Bug Report
+description: Report a problem with infrastructure, services, or deployments
+title: "[BUG] "
+labels: ["bug", "triage"]
+body:
+  - type: dropdown
+    id: service
+    attributes:
+      label: Service Affected
+      description: Which service or component is affected?
+      options:
+        - K3s / Kubernetes
+        - Traefik / Ingress
+        - Devtron / ArgoCD
+        - Zitadel / Identity
+        - Prometheus / Grafana / Monitoring
+        - CloudNativePG / Database
+        - Valkey / Cache
+        - MinIO / Storage
+        - Harbor / Registry
+        - Rocket.Chat
+        - Ollama / Open WebUI / AI
+        - n8n / Automation
+        - Ansible / Provisioning
+        - OpenTofu / Terraform
+        - Cloudflare / DNS / TLS
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - production
+        - staging
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - critical (service down, data loss risk)
+        - high (major degradation, workaround unavailable)
+        - normal (degraded, workaround available)
+        - low (cosmetic, minor inconvenience)
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What is actually happening? Include error messages and logs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the issue
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Recent changes, kubectl output, Helm values, relevant logs
