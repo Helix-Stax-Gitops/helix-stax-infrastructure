@@ -65,6 +65,13 @@ login:
   replicaCount: 1
   pdb:
     enabled: false
+  # Pin login pod to platform node (same node as zitadel core and Traefik).
+  # Without this, the chart places it on any available worker. The helix-stax-ai
+  # node (Germany/Robot) has ~99ms WireGuard latency to the CP where Traefik runs.
+  # Every login page request crosses that 99ms link twice, adding ~200ms of
+  # latency to each round-trip and causing the observed 3-4s login flow.
+  nodeSelector:
+    workload: platform
 
 # Using Traefik IngressRoute CRD via extraManifests — not standard K8s Ingress
 ingress:
